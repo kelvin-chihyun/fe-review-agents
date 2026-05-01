@@ -1,60 +1,39 @@
+<p align="center">
+  <img src="docs/assets/header.png" width="512" alt="fe-review-skills" />
+</p>
+
+<div align="center">
+
 # fe-review-skills
 
-> An open-source skill pack that **fuses several industry-grade frontend review philosophies** — Vercel React Best Practices, Toss Frontend Fundamentals, WCAG 2.2, OWASP, React rules-of-hooks + ESLint/TS-ESLint, Google TypeScript Style Guide + Effective TypeScript — by running each as a **parallel sub-agent** against your git diff and merging the results into one report.
-> Instead of asking one model to wear six hats, six clean contexts each apply their own lens — and when they hit the same line, the perspectives are kept side-by-side.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![agentskills.io](https://img.shields.io/badge/format-agentskills.io-purple.svg)](https://agentskills.io)
+[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Cursor%20·%20OpenCode-orange.svg)](#quick-start)
 
-🇰🇷 [한국어 문서](./README.md)
+**Six specialist lenses review your PR in parallel and merge into one prioritized report.**
+
+[Quick Start](#quick-start) · [Lenses](#lenses) · [Architecture](#architecture)
+
+🇰🇷 [한국어](./README.md) · 🇺🇸 English
+
+</div>
 
 ---
 
-## What it does
+A **lens** is an isolated sub-agent that reviews code through a single concern (accessibility, security, types, and so on). Six of them run in parallel, and findings on the same code get merged into a single issue with all perspectives preserved. Built on well-known frontend guidelines, it captures the multi-angle review a senior engineer juggles in their head and turns it into a tool.
 
-When you ask the agent to review a diff, this skill pack:
+## Key Features
 
-1. **Collects** the relevant `git diff` (staged, unstaged, branch, or revision range) — plus the full contents of changed files when a structural lens is enabled
-2. **Fans out** to each lens with the input it declares (`diff` or `diff + changed files`), running every lens as a parallel sub-agent
-3. **Merges** findings — issues that hit the same line range from multiple angles get deduplicated and the perspectives kept side-by-side
-4. **Ranks** by severity and prints one actionable report
+- **Six expert lenses** — Vercel React Best Practices · Toss Frontend Fundamentals · Effective TypeScript · WCAG 2.2 · OWASP · React rules-of-hooks
+- **Parallel sub-agents** — Each lens in an isolated context: no reasoning contamination, no mode collapse, no contention for the same window
+- **Smart input routing** — Diff for line-level rules, full file content for structural rules; cost stays close to *"diff × N + α"* not *"full codebase × N"*
+- **Perspective-preserving merge** — Same code flagged by multiple lenses becomes one issue with all viewpoints kept side-by-side
+- **Open standard** — Built on [agentskills.io](https://agentskills.io); works with Claude Code, Cursor, OpenCode, GitHub Copilot
+- **Conservative by design** — Skip uncertain patterns rather than emit speculation; false positives erode trust faster than missed issues
 
-## Why these six sources
+## Quick Start
 
-Each upstream is a great guideline on its own, but each one **asks a different question**:
-
-- **Vercel React Best Practices** — *"Is this fast?"* (waterfalls, RSC serialization, bundle)
-- **React rules-of-hooks + ESLint/TS-ESLint + common HTML/CSS traps** — *"Are there bugs?"* (stale closures, missing deps, hook order, race conditions, floating promises, empty catches, ==, accidental form submits)
-- **Google TypeScript Style Guide + Effective TypeScript** — *"Is the type system being worked with or around?"* (`any`, casual casts, `!` assertions, `@ts-ignore`, weak types, mutable exports)
-- **Toss Frontend Fundamentals** — *"Is this easy to change?"* (readability, predictability, cohesion, coupling)
-- **WCAG 2.2 + ARIA APG** — *"Can everyone reach this?"* (keyboard, screen readers, focus)
-- **OWASP + frontend-specific** — *"Is user data leaking?"* (XSS, secrets, unsafe storage)
-
-The six angles are nearly orthogonal. Pick any one and you systematically miss what the others would have caught. It's the six heads a senior reviewer juggles on a single PR, lifted directly into the tool.
-
-## Why parallel sub-agents
-
-We don't ask one model to apply all six lenses at once. Each lens runs as its own sub-agent — and there are **three structural reasons** for that:
-
-1. **No reasoning contamination.** Run perf → a11y → security sequentially in one context and the earlier lens's findings, framing, and severity calls color the later one's tone and priorities. Split into sub-agents and the perf reviewer does its job *without knowing* what a11y caught.
-2. **No mode collapse.** Tell one model "review this PR for perf, quality, a11y, and security" and it consistently collapses toward whichever angle is loudest or most familiar (one obvious security issue and the whole tone tilts security). Physically separating contexts makes that collapse structurally impossible.
-3. **Context budget + parallelism.** Each child's full reasoning is spent in its own window; only the structured finding JSON returns to the parent. The parent stays clean for merge/sort logic, and the six children run wall-clock in parallel — adding lenses barely adds time.
-
-Think of it as **a panel review**: instead of asking one reviewer to wear six hats, six specialist reviewers sit in isolated rooms with the same diff, finish independently, and only then meet to reconcile overlap.
-
-## Why the cost isn't N×
-
-The token cost doesn't scale at full N×. Each lens declares the input it actually needs: the five line- or function-level lenses (bugs / a11y / security / perf / ts) take **only the diff**, while `lens-code-quality` — the only one checking structural properties like cohesion and coupling — additionally takes the **full content of changed files**. **With 5 of 6 lenses seeing only the diff, the total token usage drops sharply** — the real shape is _"diff × N + α"_, not _"full codebase × N"_. That's the deliberate trade — the bet is that *consistent multi-angle coverage* is something a single 1× model pass cannot structurally buy, no matter how the prompt is written.
-
-## The six lenses
-
-| Lens | Source | Asks | Input | What it catches |
-|---|---|---|---|---|
-| `lens-react-perf` | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast? | diff | Request waterfalls, RSC serialization bloat, bundle size, missing memoization, rendering anti-patterns |
-| `lens-bugs` | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules | Are there bugs? | diff | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
-| `lens-ts` | Google TypeScript Style Guide + Effective TypeScript | Is the type system being worked with or around? | diff | `any`, casual casts, `!` assertions, `@ts-ignore`, weak types, mutable exports |
-| `lens-code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals) | Is it easy to change? | **diff + files** | Readability, predictability, cohesion, coupling |
-| `lens-a11y` | WCAG 2.2 + ARIA APG | Can everyone reach it? | diff | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal |
-| `lens-security` | OWASP + frontend-specific | Is data leaking? | diff | XSS vectors, secret leakage, unsafe storage, dangerous JS APIs |
-
-## Install
+### Install
 
 ```bash
 # Install everything
@@ -69,9 +48,7 @@ npx skills add YOUR_USERNAME/fe-review-skills \
 
 > Replace `YOUR_USERNAME` with your GitHub user/org once you fork or publish.
 
-The skill pack follows the [open Agent Skills standard](https://skills.sh), so it works with any compatible agent — Claude Code, Cursor, Cline, opencode, GitHub Copilot, and others.
-
-## Use
+### Use
 
 After installing, just ask:
 
@@ -85,8 +62,6 @@ Or with options:
 review my diff with lang=ko severity_min=high lenses=perf,a11y
 ```
 
-### Options
-
 | Option | Default | Values |
 |---|---|---|
 | `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` |
@@ -94,13 +69,44 @@ review my diff with lang=ko severity_min=high lenses=perf,a11y
 | `lenses` | all six | comma list of `perf`, `bugs`, `ts`, `quality`, `a11y`, `security` |
 | `severity_min` | `high` | `critical`, `high`, `medium`, `low` |
 
-### Run a single lens
-
 Each lens is also a standalone, user-invocable skill, so you can run just one:
 
 ```
 run lens-a11y on my unstaged changes
 ```
+
+## Lenses
+
+| Lens | Source | Asks | Input | What it catches |
+|---|---|---|---|---|
+| `lens-react-perf` | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast? | diff | Request waterfalls, RSC serialization bloat, bundle size, missing memoization, rendering anti-patterns |
+| `lens-bugs` | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules | Are there bugs? | diff | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
+| `lens-ts` | Google TypeScript Style Guide + Effective TypeScript | Is the type system being worked with or around? | diff | `any`, casual casts, `!` assertions, `@ts-ignore`, weak types, mutable exports |
+| `lens-code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals) | Is it easy to change? | **diff + files** | Readability, predictability, cohesion, coupling |
+| `lens-a11y` | WCAG 2.2 + ARIA APG | Can everyone reach it? | diff | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal |
+| `lens-security` | OWASP + frontend-specific | Is data leaking? | diff | XSS vectors, secret leakage, unsafe storage, dangerous JS APIs |
+
+## Why this design
+
+### Six different questions
+
+Each upstream guideline asks a *different question* — perf asks *is it fast*, a11y asks *can everyone reach it*, security asks *is data leaking*. The angles are nearly orthogonal: pick any one and you systematically miss what the others would have caught. It's the six heads a senior reviewer juggles on a single PR, lifted directly into the tool.
+
+### Six isolated rooms
+
+We don't ask one model to apply all six lenses at once. Each lens runs as its own sub-agent — and there are **three structural reasons** for that:
+
+1. **No reasoning contamination** — Run perf → a11y → security sequentially in one context and the earlier lens's findings, framing, and severity calls color the later one's tone and priorities. Split into sub-agents and the perf lens does its job *without knowing* what a11y caught.
+2. **No mode collapse** — Tell one model "review this PR for perf, quality, a11y, and security" and it consistently collapses toward whichever angle is loudest or most familiar (one obvious security issue and the whole tone tilts security). Physically separating contexts makes that collapse structurally impossible.
+3. **Context budget + parallelism** — Each child's full reasoning is spent in its own window; only the structured finding JSON returns to the parent. The six children run wall-clock in parallel — adding lenses barely adds time.
+
+Think of it as **a panel review**: instead of asking one reviewer to wear six hats, six specialist reviewers sit in isolated rooms with the same change, finish independently, and only then meet to reconcile overlap.
+
+### Per-lens input routing
+
+The token cost doesn't scale at full N×. Each lens declares the input it actually needs: the five line- or function-level lenses (bugs / a11y / security / perf / ts) take **only the diff**, while `lens-code-quality` — the only one checking structural properties like cohesion and coupling — additionally takes the **full content of changed files**.
+
+**With 5 of 6 lenses seeing only the diff, the total token usage drops sharply** — the real shape is *"diff × N + α"*, not *"full codebase × N"*. That's the deliberate trade — the bet is that *consistent multi-angle coverage* is something a single 1× model pass cannot structurally buy, no matter how the prompt is written.
 
 ## Architecture
 
@@ -130,9 +136,9 @@ run lens-a11y on my unstaged changes
                 └─────────────────────┘
 ```
 
-The orchestrator (`diff-review`) fans out to six sub-agents via the Task tool and does merge/sort only in its own context. The reasoning behind that split lives in [Why parallel sub-agents](#why-parallel-sub-agents) above.
+The orchestrator (`diff-review`) fans out to six sub-agents via the Task tool and does merge/sort only in its own context.
 
-## How findings get merged
+## How findings merge
 
 Each lens returns a JSON array of findings:
 
@@ -164,18 +170,13 @@ PRs welcome. Adding a new lens:
 
 The benchmark for "is this rule worth adding": can it be reliably detected from a diff (or full file, depending on the lens's input-mode) without runtime data, and would a senior frontend reviewer flag it on a PR? If both yes, add it.
 
-## Design notes
+## Inspiration
 
-- **Diff-only.** All rules are tuned to fire from a unified diff alone. Rules requiring whole-codebase analysis, runtime data, or DOM inspection are intentionally out of scope.
-- **Parallel by construction.** Reasoning isolation, mode-collapse avoidance, and context budgeting all fall out of the same design. Full rationale in [Why parallel sub-agents](#why-parallel-sub-agents).
-- **Conservative.** Lenses are instructed to skip patterns they can't be sure about, rather than flag speculative issues. False positives erode trust faster than missed issues.
-- **Catalog-bound.** Each lens lists its rule ids and only emits findings under those categories. This keeps the output reviewable and the rule set evolvable.
+Inspired by the Compounding Engineering pattern Toss uses internally — running multiple LLMs in parallel against a single PR.
 
-## License
+## License & Credits
 
 MIT — see [LICENSE](./LICENSE).
-
-## Credits
 
 - [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills) by Vercel Labs (MIT)
 - [Frontend Fundamentals](https://github.com/toss/frontend-fundamentals) by Toss (MIT)
