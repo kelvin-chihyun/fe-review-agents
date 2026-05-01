@@ -1,10 +1,8 @@
----
-name: lens-security
-input-mode: diff
-description: "Reviews frontend code diffs for security issues including XSS vectors (dangerouslySetInnerHTML, innerHTML, javascript: URLs), secret and PII leakage (env vars in client code, tokens in localStorage, hardcoded keys), unsafe link and iframe patterns, and dangerous JS APIs (eval, new Function). Returns structured JSON findings. Use when reviewing diffs for frontend security, or when invoked as a sub-agent by the diff-review orchestrator."
-user-invocable: true
----
-
+name = "lens-security"
+description = "Reviews frontend code diffs for security issues including XSS vectors (dangerouslySetInnerHTML, innerHTML, javascript: URLs), secret and PII leakage (env vars in client code, tokens in localStorage, hardcoded keys), unsafe link and iframe patterns, and dangerous JS APIs (eval, new Function). Returns structured JSON findings. Use when reviewing diffs for frontend security, or when invoked as a sub-agent by the diff-review orchestrator."
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
 # lens-security
 
 Security review lens for frontend code. Focused on patterns that can be detected from a diff alone — no SAST tooling, no dependency CVE scanning. The aim is to catch the high-leverage frontend-specific risks.
@@ -80,3 +78,4 @@ Return ONLY a JSON array of findings — no prose. Same schema as `lens-react-pe
 - Skip findings in test files (`*.test.*`, `*.spec.*`, `__tests__/**`, `e2e/**`) UNLESS the issue is `hardcoded-secret` (which is severe regardless of file type).
 - Skip findings in storybook files (`*.stories.*`).
 - `category` field MUST be one of the rule ids above.
+"""

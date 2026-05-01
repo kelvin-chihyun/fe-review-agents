@@ -7,12 +7,11 @@
 # fe-review-skills
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![agentskills.io](https://img.shields.io/badge/format-agentskills.io-purple.svg)](https://agentskills.io)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Codex%20·%20Gemini%20CLI-orange.svg)](#quick-start)
 
 **Six specialist lenses review your PR in parallel and merge into one prioritized report.**
 
-[Quick Start](#quick-start) · [Lenses](#lenses) · [Architecture](#architecture)
+[Quick Start](#quick-start) · [Lenses](#lenses) · [Architecture](#architecture) · [Adding a lens](docs/adding-a-lens.md)
 
 🇰🇷 [한국어](./README.md) · 🇺🇸 English
 
@@ -20,7 +19,7 @@
 
 ---
 
-fe-review-skills is an [agentskills.io](https://agentskills.io) skill pack that reviews a git diff through six concerns (perf · code quality · bugs · types · a11y · security) _simultaneously_. Each concern is a **lens** — an isolated sub-agent focused on a single perspective — and the six run in parallel, then merge into one prioritized report. Rules are taken straight from established frontend guidelines: Vercel React Best Practices, Toss Frontend Fundamentals, Effective TypeScript, WCAG 2.2, OWASP.
+fe-review-skills is a CLI that reviews a git diff through six concerns (perf · code quality · bugs · types · a11y · security) _simultaneously_. Each concern is a **lens** — an isolated sub-agent focused on a single perspective — and the six run in parallel, then merge into one prioritized report. Rules come from established frontend guidelines: Vercel React Best Practices, Toss Frontend Fundamentals, Effective TypeScript, WCAG 2.2, OWASP. Adding a new lens is just dropping in a folder — the orchestrator auto-discovers any installed `lens-*`.
 
 ## Key Features
 
@@ -28,7 +27,8 @@ fe-review-skills is an [agentskills.io](https://agentskills.io) skill pack that 
 - **Parallel sub-agents** — Each lens in an isolated context: no reasoning contamination, no mode collapse, no contention for the same window
 - **Smart input routing** — Diff for line-level rules, full file content for structural rules; cost stays close to *"diff × N + α"* not *"full codebase × N"*
 - **Perspective-preserving merge** — Same code flagged by multiple lenses becomes one issue with all viewpoints kept side-by-side
-- **Open standard** — Built on [agentskills.io](https://agentskills.io); works with Claude Code, Codex, Gemini CLI
+- **One-command setup** — `npx fe-review-skills install <tool>` bootstraps a fresh repo. Claude Code is the primary target; Codex and Gemini CLI install lenses only (invoke via natural language)
+- **Lenses are extensible** — Drop a new `skills/lens-<name>/` folder in and it joins on the next call. README, orchestrator, and `package.json` stay untouched.
 - **Conservative by design** — Skip uncertain patterns rather than emit speculation; false positives erode trust faster than missed issues
 
 ## Quick Start
@@ -36,27 +36,38 @@ fe-review-skills is an [agentskills.io](https://agentskills.io) skill pack that 
 ### Install
 
 ```bash
-# Install everything
-npx skills add YOUR_USERNAME/fe-review-skills --all
+# Claude Code (primary — orchestrator + 6 lenses)
+npx fe-review-skills install claude-code
 
-# Or pick what you need
-npx skills add YOUR_USERNAME/fe-review-skills \
-  --skill diff-review \
-  --skill lens-react-perf \
-  --skill lens-a11y
+# Codex CLI (lenses only, TOML)
+npx fe-review-skills install codex-cli
+
+# Gemini CLI (lenses only, markdown)
+npx fe-review-skills install gemini-cli
 ```
 
-> Replace `YOUR_USERNAME` with your GitHub user/org once you fork or publish.
+Options:
+
+- `--global` — install under `~/<tool-dir>` (apply to every project)
+- `--dry-run` — preview destination paths without writing
+
+Per-tool guides: [Claude Code](docs/install-claude-code.md) · [Codex](docs/install-codex-cli.md) · [Gemini CLI](docs/install-gemini-cli.md).
 
 ### Use
 
-After installing, just ask:
+After install, in Claude Code use the slash command or natural language:
+
+```
+/diff-review
+```
+
+Or:
 
 ```
 review my staged changes
 ```
 
-Or with options:
+With options:
 
 ```
 review my diff with lang=ko severity_min=high lenses=perf,a11y
@@ -66,10 +77,16 @@ review my diff with lang=ko severity_min=high lenses=perf,a11y
 |---|---|---|
 | `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` |
 | `lang` | `en` | `en`, `ko` |
-| `lenses` | all six | comma list of `perf`, `bugs`, `ts`, `quality`, `a11y`, `security` |
+| `lenses` | all installed | comma-list of short names matching installed lenses (`perf` → `lens-react-perf`, `quality` → `lens-code-quality`, otherwise the lens-name suffix) |
 | `severity_min` | `high` | `critical`, `high`, `medium`, `low` |
 
-Each lens is also a standalone, user-invocable skill, so you can run just one:
+Each lens runs standalone too:
+
+```
+/lens-a11y
+```
+
+Or:
 
 ```
 run lens-a11y on my unstaged changes
@@ -136,7 +153,7 @@ The token cost doesn't scale at full N×. Each lens declares the input it actual
                 └─────────────────────┘
 ```
 
-The orchestrator (`diff-review`) fans out to six sub-agents via the Task tool and does merge/sort only in its own context.
+The orchestrator (`diff-review`) discovers installed `lens-*` skills in Step 0, then fans out to all of them via the Task tool. Merge and sort happen only in its own context. User-added lenses join the same way.
 
 ## How findings merge
 
@@ -159,16 +176,15 @@ The merger groups findings by `file` + overlapping line ranges. When multiple le
 
 Final severity is the max across perspectives. Sort is by severity desc, then file path, then line number.
 
+## Adding a lens
+
+When the default 6 lenses don't cover a perspective your team needs (i18n, motion / `prefers-reduced-motion`, dependency hygiene, design tokens, etc.), drop a new `skills/lens-<name>/SKILL.md` folder in. The orchestrator auto-discovers installed `lens-*` skills, so README, `package.json`, and the orchestrator stay untouched.
+
+Full guide: [docs/adding-a-lens.md](docs/adding-a-lens.md) — the frontmatter contract, finding JSON schema, rule-catalog format, boundary discipline (don't overlap with existing lenses), plus a copy-pasteable SKILL.md skeleton.
+
 ## Contributing
 
-PRs welcome. Adding a new lens:
-
-1. Create `skills/lens-<name>/SKILL.md` with the YAML frontmatter (`name`, `input-mode`, `description`, `user-invocable: true`). Set `input-mode` to `diff` (line/function-level rules) or `changed-files` (structural rules requiring full file context)
-2. Document the rule catalog using one rule id per pattern
-3. Match the JSON output schema (see any existing lens)
-4. Add the lens to `package.json` `skills` and to the orchestrator's lens list
-
-The benchmark for "is this rule worth adding": can it be reliably detected from a diff (or full file, depending on the lens's input-mode) without runtime data, and would a senior frontend reviewer flag it on a PR? If both yes, add it.
+PRs welcome. To add a lens, follow [docs/adding-a-lens.md](docs/adding-a-lens.md) — drop a folder in, no other files to edit. Bar for a new rule: *"reliably detectable from the lens's input-mode without runtime data"* AND *"a senior frontend reviewer would flag it on a PR."* Both yes → add.
 
 ## Inspiration
 

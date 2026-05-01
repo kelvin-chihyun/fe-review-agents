@@ -1,33 +1,65 @@
 ---
 name: diff-review
-description: Orchestrates parallel frontend code review across six specialized lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) on a git diff. Use when the user asks to review a diff, review a PR, run code review on staged or unstaged changes, audit frontend changes, or perform a multi-perspective code review on git output. Spawns sub-agents for each lens in parallel, then deduplicates and prioritizes findings.
+description: Orchestrates parallel frontend code review across the six default lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) plus any additional `lens-*` skills the user has installed. Use when the user asks to review a diff, review a PR, run code review on staged or unstaged changes, audit frontend changes, or perform a multi-perspective code review on git output. Spawns sub-agents for each installed lens in parallel, then deduplicates and prioritizes findings.
 user-invocable: true
 ---
 
 # diff-review
 
-Run six frontend review lenses in parallel against a git diff and merge the results into one prioritized report.
+Run every installed frontend review lens in parallel against a git diff and merge the results into one prioritized report.
 
 ## When to use
 
 Trigger on user requests like "review my diff", "review staged changes", "review this PR", "audit the changes on this branch", or "run code review on what I've changed". Targets frontend repos (React, Next.js, Vue, Svelte, plain HTML/CSS).
 
-If the user asks for a single perspective (e.g. "just check for a11y"), defer to the matching lens skill (`lens-a11y`, `lens-react-perf`, `lens-bugs`, `lens-ts`, etc.) instead of running this orchestrator.
+If the user asks for a single perspective (e.g. "just check for a11y"), defer to whichever installed `lens-*` skill matches the request instead of running this orchestrator.
 
 ## Inputs
 
 The user can pass options inline. Parse them out of the request:
 
-| Option         | Default  | Values                                                              |
-| -------------- | -------- | ------------------------------------------------------------------- |
-| `scope`        | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<rev>..<rev>`         |
-| `lang`         | `en`     | `en`, `ko`                                                          |
-| `lenses`       | all six  | comma-list from `perf`, `bugs`, `quality`, `a11y`, `security`, `ts` |
-| `severity_min` | `high`   | `critical`, `high`, `medium`, `low`                                 |
+| Option         | Default      | Values                                                                                |
+| -------------- | ------------ | ------------------------------------------------------------------------------------- |
+| `scope`        | `staged`     | `staged`, `unstaged`, `branch:<name>`, `range:<rev>..<rev>`                           |
+| `lang`         | `en`         | `en`, `ko`                                                                            |
+| `lenses`       | all installed | comma-list of short names; each token matches an installed `lens-<name>` skill (see Step 0 for resolution rules) |
+| `severity_min` | `high`       | `critical`, `high`, `medium`, `low`                                                   |
 
 Example: "review my diff with lang=ko severity_min=medium lenses=perf,bugs,ts,a11y"
 
 ## Workflow
+
+### Step 0 — Discover installed lenses
+
+List the lens skills available to dispatch. Use the `Glob` tool with these patterns (in order; first non-empty wins):
+
+1. `.claude/skills/lens-*/SKILL.md` — project-level installs
+2. `~/.claude/skills/lens-*/SKILL.md` — global installs (expand `~` to the user's home dir)
+
+For each match, read the file's YAML frontmatter and extract `name` and `input-mode`. Skip entries with missing `name` or unparseable frontmatter and note the skip in the report footer (`⚠️ Skipped <path>: missing/invalid frontmatter`).
+
+The result is a list of `{ name, input-mode }` records — call it the **installed lens set**.
+
+If the installed lens set is empty:
+
+> No lens skills are installed. Run `npx fe-review-skills install <claude-code|gemini-cli|codex-cli>` from your project root to install the default 6 lenses (or `--global` to install for all projects).
+
+…and stop.
+
+#### Resolving the `lenses` option
+
+If the user passed `lenses=<comma-list>`, resolve each short-name token against the installed lens set:
+
+- Exact match (`lens-bugs` matches the lens whose `name` is `lens-bugs`) → use it.
+- Suffix match — token without `lens-` prefix matches a lens whose `name` ends with that suffix:
+  - `perf` → `lens-react-perf`
+  - `quality` → `lens-code-quality`
+  - `bugs` → `lens-bugs`, `ts` → `lens-ts`, `a11y` → `lens-a11y`, `security` → `lens-security`
+  - For user-added lenses, the token equals the suffix after `lens-` (e.g. `i18n` matches `lens-i18n`).
+- Ambiguous token (matches >1 installed lens) → ask the user to disambiguate by giving the full `lens-<name>` form, then stop.
+- Unmatched token → tell the user the lens isn't installed and list installed lenses, then stop.
+
+If `lenses` is unset, use the entire installed lens set.
 
 ### Step 1 — Collect the diff and (when needed) file contents
 

@@ -1,13 +1,32 @@
 {
   "name": "fe-review-skills",
-  "version": "0.3.0",
-  "description": "Open-source skill pack for AI-powered frontend code review on git diffs. Runs six parallel lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) and merges findings into one prioritized report.",
+  "version": "0.4.0",
+  "description": "AI-powered frontend code review CLI. One-command install for Claude Code, Codex, Gemini CLI. Six parallel review lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) you customize freely.",
+  "type": "module",
+  "bin": {
+    "fe-review-skills": "bin/fe-review-skills.mjs"
+  },
+  "files": [
+    "bin",
+    "skills",
+    "codex",
+    "scripts",
+    "docs",
+    "CLAUDE.md"
+  ],
+  "scripts": {
+    "build:codex": "node scripts/build-codex.mjs",
+    "build": "npm run build:codex",
+    "prepublishOnly": "npm run build"
+  },
   "license": "MIT",
+  "author": "huurray",
   "keywords": [
-    "agent-skills",
     "claude-code",
-    "cursor",
-    "opencode",
+    "codex-cli",
+    "gemini-cli",
+    "cli",
+    "npx",
     "code-review",
     "frontend",
     "react",
@@ -21,23 +40,22 @@
     "performance",
     "security",
     "git-diff",
-    "pr-review"
-  ],
-  "skills": [
-    "diff-review",
-    "lens-react-perf",
-    "lens-bugs",
-    "lens-ts",
-    "lens-code-quality",
-    "lens-a11y",
-    "lens-security"
+    "pr-review",
+    "subagent"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/fe-review-skills.git"
+    "url": "git+https://github.com/huurray/fe-review-skills.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/fe-review-skills/issues"
+    "url": "https://github.com/huurray/fe-review-skills/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/fe-review-skills#readme"
+  "homepage": "https://github.com/huurray/fe-review-skills#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "gray-matter": "^4.0.3",
+    "smol-toml": "^1.3.0"
+  }
 }
