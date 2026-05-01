@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![agentskills.io](https://img.shields.io/badge/format-agentskills.io-purple.svg)](https://agentskills.io)
-[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Cursor%20·%20OpenCode-orange.svg)](#빠른-시작)
+[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Codex%20·%20Gemini%20CLI-orange.svg)](#빠른-시작)
 
 **N개의 프론트엔드 가이드라인이 같은 변경사항을 동시에 검토합니다.**
 
@@ -16,9 +16,7 @@
 
 </div>
 
-# [fe-review-skills](https://github.com/huurray/fe-review-skills)
-
-**"Lens"**는 같은 코드를 한 가지 관점(접근성·보안·타입 등)으로만 검토하는 격리된 sub-agent입니다. 6개가 병렬로 돌고, 같은 코드를 여러 lens가 짚으면 그 관점이 모두 보존된 채 하나의 이슈로 합쳐집니다. 잘 알려진 프론트엔드 가이드라인을 _동시에_ 적용해, 시니어 리뷰어가 머릿속에 굴리는 여러 시각을 그대로 도구로 옮긴 형태입니다.
+fe-review-skills는 git diff를 6개 관점(perf·코드 품질·버그·타입·a11y·security)으로 _동시에_ 리뷰하는 스킬 팩입니다. 각 관점은 **lens**(한 가지 관점만 보는 가이드라인, 격리된 컨텍스트의 sub-agent)로 구현돼 6개가 병렬로 실행되고, 결과는 우선순위가 매겨진 하나의 리포트로 합쳐집니다. 룰셋은 _잘 알려진 공인된 프론트엔드 가이드라인_ 을 그대로 따릅니다.
 
 ## 핵심 기능
 
@@ -26,7 +24,7 @@
 - **병렬 sub-agent** — 각 lens가 격리된 컨텍스트에서 실행돼 추론 오염·모드 콜랩스·컨텍스트 경합 없음
 - **Smart input routing** — 라인 단위 룰엔 diff만, 구조적 룰엔 파일 전체. 비용은 _"전체 코드베이스 × N배"가 아니라 "diff × N배 + α"_ 로 유지
 - **관점 보존 머지** — 같은 코드를 여러 lens가 잡으면 한 이슈에 모든 관점 나란히 보존
-- **오픈 표준** — [agentskills.io](https://agentskills.io) 기반. Claude Code · Cursor · OpenCode · GitHub Copilot 등에서 동작
+- **오픈 표준** — [agentskills.io](https://agentskills.io) 기반. Claude Code · Codex · Gemini CLI에서 동작
 - **보수적 설계** — 불확실한 패턴은 일부러 skip. false positive 한 번이 missed 한 번보다 신뢰를 더 깎는다는 판단
 
 ## 빠른 시작

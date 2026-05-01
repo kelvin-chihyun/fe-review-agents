@@ -8,7 +8,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![agentskills.io](https://img.shields.io/badge/format-agentskills.io-purple.svg)](https://agentskills.io)
-[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Cursor%20·%20OpenCode-orange.svg)](#quick-start)
+[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Codex%20·%20Gemini%20CLI-orange.svg)](#quick-start)
 
 **Six specialist lenses review your PR in parallel and merge into one prioritized report.**
 
@@ -20,7 +20,7 @@
 
 ---
 
-A **lens** is an isolated sub-agent that reviews code through a single concern (accessibility, security, types, and so on). Six of them run in parallel, and findings on the same code get merged into a single issue with all perspectives preserved. Built on well-known frontend guidelines, it captures the multi-angle review a senior engineer juggles in their head and turns it into a tool.
+fe-review-skills is an [agentskills.io](https://agentskills.io) skill pack that reviews a git diff through six concerns (perf · code quality · bugs · types · a11y · security) _simultaneously_. Each concern is a **lens** — an isolated sub-agent focused on a single perspective — and the six run in parallel, then merge into one prioritized report. Rules are taken straight from established frontend guidelines: Vercel React Best Practices, Toss Frontend Fundamentals, Effective TypeScript, WCAG 2.2, OWASP.
 
 ## Key Features
 
@@ -28,7 +28,7 @@ A **lens** is an isolated sub-agent that reviews code through a single concern (
 - **Parallel sub-agents** — Each lens in an isolated context: no reasoning contamination, no mode collapse, no contention for the same window
 - **Smart input routing** — Diff for line-level rules, full file content for structural rules; cost stays close to *"diff × N + α"* not *"full codebase × N"*
 - **Perspective-preserving merge** — Same code flagged by multiple lenses becomes one issue with all viewpoints kept side-by-side
-- **Open standard** — Built on [agentskills.io](https://agentskills.io); works with Claude Code, Cursor, OpenCode, GitHub Copilot
+- **Open standard** — Built on [agentskills.io](https://agentskills.io); works with Claude Code, Codex, Gemini CLI
 - **Conservative by design** — Skip uncertain patterns rather than emit speculation; false positives erode trust faster than missed issues
 
 ## Quick Start
