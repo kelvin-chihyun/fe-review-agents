@@ -1,0 +1,86 @@
+---
+name: lens-code-quality
+input-mode: changed-files
+description: Reviews frontend code changes for maintainability based on Toss Frontend Fundamentals — readability (가독성), predictability (예측 가능성), cohesion (응집도), and coupling (결합도). Detects hidden side effects, prop drilling, leaky abstractions, and code that is hard to change. Returns structured JSON findings. Use when reviewing diffs for code quality, maintainability, or "easy-to-change code", or when invoked as a sub-agent by the diff-review orchestrator.
+user-invocable: true
+---
+
+# lens-code-quality
+
+Maintainability lens based on [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals).
+
+The core thesis of FF: good frontend code is easy-to-change code, judged on four axes — readability (가독성), predictability (예측 가능성), cohesion (응집도), coupling (결합도). This lens flags violations of those principles that are detectable from the changed code (the lens receives the diff plus full file contents — see "Input mode" below).
+
+## When to use
+
+- Triggered by `diff-review` as a sub-agent
+- Or directly: "review this diff for code quality"
+
+## Output
+
+Return ONLY a JSON array of findings — no prose. Same schema as `lens-react-perf`. Return `[]` if no issues.
+
+Every `category` must be prefixed with one of: `readability/`, `predictability/`, `cohesion/`, `coupling/`.
+
+## Input mode
+
+This lens runs in `changed-files` mode — it receives **the diff plus the full post-change content of every modified file** (not just the diff). Use the broader context for structural analysis (full function bodies, prop chains, hook signatures, cohesion across imports). **Restrict findings to code that appears in the diff hunks** — pre-existing untouched code is not your target.
+
+For large PRs, the orchestrator may switch to **per-file mode**, where this lens is called separately for each changed file. In that mode, cross-file rules — `coupling/circular-domain`, `predictability/same-name-divergent-behavior` — may not have visibility into both modules. Skip those rather than guess.
+
+## Rules
+
+### Readability (가독성)
+
+- **readability/context-overload** — A single component or function juggling 6+ unrelated concerns (auth + permissions + theming + feature flags + i18n + analytics + …). Cognitive load too high; abstract via wrappers, HOCs, or split components. Severity: **high** if 7+, **medium** if 6.
+
+- **readability/magic-number** — Numeric literals in conditions or comparisons without a named constant (e.g. `if (count > 47)`). Severity: **low**.
+
+- **readability/named-condition** — Complex boolean expressions (3+ AND/OR clauses) used inline in `if` or JSX conditions. Extract to a named const or function. Severity: **medium**.
+
+- **readability/implementation-detail-leak** — A component or hook exposes implementation details (internal state shape, query cache keys, animation timing) through its public API where a higher-level concept would do. Severity: **medium**.
+
+- **readability/vertical-scan-cost** — A function whose logic requires repeated up-down jumps to follow (early returns mixed with mid-function helpers, nested ternaries that span many lines). Severity: **low**.
+
+### Predictability (예측 가능성)
+
+- **predictability/hidden-side-effect** — A function does work not implied by its name or signature. Examples: `formatDate` that also logs analytics; `getUser` that also writes to localStorage; a React hook named `useX` that triggers a network mutation on mount. Either rename to reveal the effect or split. Severity: **high**.
+
+- **predictability/same-name-divergent-behavior** — Two functions, hooks, or components share a name but behave differently across modules (e.g. two `formatPrice` implementations with different rounding). Severity: **high**. **Only emit when both implementations are visible in the input** — if only one is in the changed files, skip rather than guess.
+
+- **predictability/signature-misleading** — Return type or parameter shape doesn't match runtime reality. Examples: declared `User` but can return `null`; `(id: string)` but actually accepts `number`; promise that may resolve to `undefined` not in the type. Severity: **high**.
+
+- **predictability/inconsistent-querykey** — Tanstack Query: a `queryKey` reused across queries that fetch different data (cache pollution risk), or a `queryKey` constructed by string concatenation in two places that may diverge. Severity: **high**.
+
+### Cohesion (응집도)
+
+- **cohesion/colocate-related** — Files that change together placed in distant directories (e.g. `api/user.ts`, `hooks/useUser.ts`, `types/user.ts`, `components/UserCard.tsx` scattered four levels apart). The diff shows changes touching all four. Severity: **medium**.
+
+- **cohesion/over-shared-hook** — A hook used in multiple places that already accepts 4+ params just to handle per-call-site variation; the abstraction is leaky and would be clearer as duplicated, specialized hooks. Severity: **medium**.
+
+- **cohesion/premature-dry** — Code newly extracted as "shared" where the call sites have meaningfully different requirements that will diverge. FF principle: where pages will diverge, allow duplication. Severity: **medium**.
+
+- **cohesion/pass-through-prop** — A prop forwarded through 3+ component layers without being read by intermediates. Use composition or context. Severity: **medium**.
+
+### Coupling (결합도)
+
+- **coupling/global-state-misuse** — Zustand/Redux/Jotai store used for state that lives entirely within one component subtree. Use local state + props or Context. Severity: **medium**.
+
+- **coupling/cross-feature-import** — Code in feature A imports internals (non-public files) of feature B, bypassing its public surface. Severity: **high**.
+
+- **coupling/circular-domain** — Two modules importing from each other forming a cycle. Severity: **high**.
+
+- **coupling/test-implementation-detail** — Test file imports from a `_internal` or non-exported path of the unit under test, coupling tests to implementation. Severity: **medium**.
+
+## Severity guide
+
+- **high**: a violation likely to cause real maintenance pain or bugs within months (hidden side effect, misleading types, cross-feature coupling)
+- **medium**: code smell that will accrue cost
+- **low**: nit, style, or arguable
+
+## Important
+
+- This lens is about maintainability, not performance — leave perf to `lens-react-perf`.
+- If a pattern looks "wrong" but you don't have a matching rule above, do NOT flag it. Stick to the catalog.
+- For Korean-context developers, the principle names are intentionally aligned with FF terminology so the report rationale will read familiarly.
+- Don't flag working code just because it could be "cleaner". The rule must clearly fire on the diff.

@@ -1,0 +1,43 @@
+{
+  "name": "fe-review-skills",
+  "version": "0.3.0",
+  "description": "Open-source skill pack for AI-powered frontend code review on git diffs. Runs six parallel lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) and merges findings into one prioritized report.",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "cursor",
+    "cline",
+    "code-review",
+    "frontend",
+    "react",
+    "nextjs",
+    "typescript",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "toss frontend fundamentals",
+    "vercel react best practices",
+    "performance",
+    "security",
+    "git-diff",
+    "pr-review"
+  ],
+  "skills": [
+    "diff-review",
+    "lens-react-perf",
+    "lens-bugs",
+    "lens-ts",
+    "lens-code-quality",
+    "lens-a11y",
+    "lens-security"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/fe-review-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/fe-review-skills/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/fe-review-skills#readme"
+}
