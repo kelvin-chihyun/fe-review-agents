@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.png" width="256" alt="fe-review-skills" />
+  <img src="docs/assets/header.png" width="300" alt="fe-review-skills" />
 </p>
 
 <div align="center">
@@ -18,7 +18,7 @@
 
 # [fe-review-skills](https://github.com/huurray/fe-review-skills)
 
-**Lens**는 같은 코드를 한 가지 관점(접근성·보안·타입 등)으로만 검토하는 격리된 sub-agent입니다. 6개가 병렬로 돌고, 같은 코드를 여러 lens가 짚으면 그 관점이 모두 보존된 채 하나의 이슈로 합쳐집니다. 잘 알려진 프론트엔드 가이드라인을 _동시에_ 적용해, 시니어 리뷰어가 머릿속에 굴리는 여러 시각을 그대로 도구로 옮긴 형태입니다.
+**"Lens"**는 같은 코드를 한 가지 관점(접근성·보안·타입 등)으로만 검토하는 격리된 sub-agent입니다. 6개가 병렬로 돌고, 같은 코드를 여러 lens가 짚으면 그 관점이 모두 보존된 채 하나의 이슈로 합쳐집니다. 잘 알려진 프론트엔드 가이드라인을 _동시에_ 적용해, 시니어 리뷰어가 머릿속에 굴리는 여러 시각을 그대로 도구로 옮긴 형태입니다.
 
 ## 핵심 기능
 
