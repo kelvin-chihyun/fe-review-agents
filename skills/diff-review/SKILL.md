@@ -70,6 +70,8 @@ If `lenses` is unset, use the entire installed lens set.
 - `branch:<name>` → `git diff <name>...HEAD --unified=3`
 - `range:<a>..<b>` → `git diff <a>..<b> --unified=3`
 
+Capture the diff output **directly into your context** by running the bash command and reading the result. Do NOT redirect to a temp file (`> /tmp/...`) — Step 2 dispatches must inline the diff text into each sub-agent prompt, and a `/tmp` round-trip just forces every sub-agent to do an extra Read. Same rule for the file contents collected in 1c.
+
 **1b. Filter** to frontend files only:
 
 ```
@@ -110,7 +112,11 @@ Skip files **deleted** in this diff (no post-change content exists).
 
 For each enabled lens, read its `input-mode` from its SKILL.md frontmatter. Default to `diff` if not specified. Different lenses may receive different inputs in the same review run — that's intentional (see "Why per-lens input" in the README).
 
-**Dispatch prompt discipline.** Use the templates below verbatim. Do NOT append filesystem paths to SKILL.md, "read SKILL.md first" instructions, or restated finding-schema fields. The Skill tool auto-loads the lens's SKILL.md content when the sub-agent invokes `Use the <lens-name> skill`; pointing to the file forces a redundant Read tool call per agent and inflates dispatch latency.
+**Dispatch prompt discipline.** Use the templates below verbatim, filling `<full diff content>`, `<file content>`, etc. with the actual text from your context. Three rules — all of them load-bearing:
+
+1. **Inline content, never reference paths.** Place the actual diff bytes under the ` ```diff ` fence; place actual file contents under each `=== <path> ===` block. Do NOT save the diff to `/tmp/diff-review-diff.patch` and tell the sub-agent to "Read it with the Read tool." Do NOT list absolute file paths and ask the sub-agent to Read them. Inlining costs the same tokens but skips a per-sub-agent tool round-trip and keeps every dispatch consistent (mid-run inconsistency — half inlined, half referenced — is a known failure mode).
+2. **No SKILL.md path references.** The Skill tool auto-loads the lens's SKILL.md content when the sub-agent invokes `Use the <lens-name> skill`; pointing to the file forces a redundant Read tool call.
+3. **No restated finding-schema fields.** The lens's SKILL.md already documents the schema; restating it bloats the prompt and risks divergence.
 
 #### Diff-mode lenses (`input-mode: diff`)
 
@@ -176,9 +182,13 @@ Pick the strategy based on the size guards from Step 1c.
 > <full file content>
 > ```
 
-#### Parallelism
+#### Parallelism (load-bearing)
 
-Run all sub-agents in parallel — do not chain them, regardless of mode. In per-file mode that means N (files) × M (changed-files lenses) calls all run concurrently alongside the diff-mode lenses. If a sub-agent returns malformed JSON, treat it as `[]` and note the failure in the report footer.
+**Issue ALL Agent tool_use blocks in a single assistant message.** This is the only thing that makes them run concurrently. If you dispatch lens A, observe its result, then dispatch lens B in a follow-up message, the runtime executes them sequentially regardless of any "parallel" intent — and the entire architecture (no reasoning contamination, isolated context budgets, faster wall time) collapses.
+
+Concretely: when you reach the dispatch step, your next assistant message must contain N Agent tool_use blocks where N = (diff-mode lenses) + (changed-files single-call lenses) + (per-file mode: files × changed-files lenses). Do NOT dispatch one, await its result, then dispatch the next. Do NOT split dispatches across multiple assistant messages "to be safe" or "to verify" — the merge step in Step 3 is your verification.
+
+If a sub-agent returns malformed JSON, treat it as `[]` and note the failure in the report footer.
 
 ### Step 3 — Merge and deduplicate
 
@@ -212,82 +222,78 @@ Use the report template (English or Korean per `lang`).
 ```markdown
 # Code Review
 
-**Scope:** <scope description> · **Files reviewed:** <N> · **Issues:** <total> (Critical: <C> / High: <H> / Medium: <M> / Low: <L>)
+> **<scope>** · <N> files · <total> issues · 🔴 <C> · 🟠 <H> · 🟡 <M> · ⚪ <L>
 
 ---
 
 ## 🔴 Critical
 
-### 1. <title>
+### <n>. <title>
 
-**File:** `<path>:<line_start>-<line_end>` · **Severity:** Critical
-**Lenses:** <comma-list of lens names>
+`<path>:<line_start>-<line_end>` · <K> perspectives
 
-<For each perspective:>
-- **<lens-name>** — <rationale>
-  Suggestion: <suggestion>
-
----
+- **<lens>** — <rationale>
+  → <suggestion>
 
 ## 🟠 High
 
-... (same shape)
+### <n>. <title>
 
-## 🟡 Medium
+`<path>:<line_start>-<line_end>`
 
-... (same shape)
-
-## ⚪ Low
-
-... (same shape)
-
----
-
-<If any sub-agent failed:>
-> ⚠️ Lens `<name>` failed to return parseable findings and was skipped.
+- **<lens>** — <rationale>
+  → <suggestion>
 ```
+
+**Rendering rules:**
+
+- Issue numbering is global across all severity sections (1, 2, 3, ...).
+- Drop the `lens-` prefix from `<lens>` (emit `security`, not `lens-security`).
+- Omit any severity section entirely (heading + body) if it has zero issues, and also omit that severity from the summary header.
+- Drop the `· <K> perspectives` suffix when an issue has only one perspective.
+- Multiple issues within the same severity render under the same `## <severity>` heading sequentially, with no separator between them.
+- Severity icon legend: `🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low`.
+- If `<total>` is 0, emit only the H1 plus one line: `No issues found.`
+- If any sub-agent failed to return parseable JSON, append at the very end after a `---`: `> ⚠️ Lens \`<name>\` failed to return parseable findings and was skipped.`
 
 ## Report template (ko)
 
 ```markdown
 # 코드 리뷰
 
-**범위:** <scope 설명> · **파일 수:** <N> · **이슈:** 총 <total>개 (Critical: <C> / High: <H> / Medium: <M> / Low: <L>)
+> **<scope>** · <N> 파일 · <total> 이슈 · 🔴 <C> · 🟠 <H> · 🟡 <M> · ⚪ <L>
 
 ---
 
 ## 🔴 Critical
 
-### 1. <title>
+### <n>. <title>
 
-**파일:** `<path>:<line_start>-<line_end>` · **심각도:** Critical
-**적용 lens:** <comma-list>
+`<path>:<line_start>-<line_end>` · <K> 관점
 
-<각 perspective:>
-
-- **<lens-name>** — <rationale>
-  권장: <suggestion>
-
----
+- **<lens>** — <rationale>
+  → <suggestion>
 
 ## 🟠 High
 
-... (동일 구조)
+### <n>. <title>
 
-## 🟡 Medium
+`<path>:<line_start>-<line_end>`
 
-... (동일 구조)
-
-## ⚪ Low
-
-... (동일 구조)
-
----
-
-<sub-agent 실패 시:>
-
-> ⚠️ `<name>` lens가 결과를 반환하지 못해 건너뛰었습니다.
+- **<lens>** — <rationale>
+  → <suggestion>
 ```
+
+**렌더링 규칙:**
+
+- 이슈 번호는 전체 리포트에 걸쳐 글로벌로 매김 (1, 2, 3, ...).
+- `<lens>` 에서 `lens-` 접두사 제거 (`security`, `react-perf` 등).
+- 이슈가 0개인 severity 섹션은 헤딩 포함 전체 생략. summary 헤더에서도 해당 항목 생략.
+- 관점이 1개뿐인 이슈에서는 `· <K> 관점` 부분 생략.
+- 같은 severity 내 여러 이슈는 같은 `## <severity>` 헤딩 아래 연속으로 렌더 (이슈 간 구분선 없음).
+- severity 아이콘 범례: `🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low`.
+- `<total>` 이 0이면 H1만 출력하고 한 줄: `이슈를 찾지 못했습니다.`
+- sub-agent가 파싱 불가능한 응답을 리턴한 경우, 맨 끝 `---` 뒤에 추가: `> ⚠️ \`<name>\` lens가 결과를 반환하지 못해 건너뛰었습니다.`
 
 ## Important
 

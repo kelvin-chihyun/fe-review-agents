@@ -174,39 +174,35 @@ A single change can fire multiple lenses on the same lines. Here's a hunk that h
 
 `/diff-review` returns a single prioritized report. Findings on overlapping lines merge into one issue with each lens's view preserved:
 
-```markdown
-# Code Review
-
-**Scope:** staged · **Files reviewed:** 1 · **Issues:** 2 (Critical: 1 / High: 1 / Medium: 0 / Low: 0)
-
 ---
 
-## 🔴 Critical
+#### Code Review
 
-### 1. Client useEffect fetch with hardcoded API key
+> **staged** · 1 file · 2 issues · 🔴 1 · 🟠 1
 
-**File:** `src/components/Profile.tsx:4-10` · **Severity:** Critical
-**Lenses:** lens-security, lens-react-perf, lens-bugs
+##### 🔴 Critical
 
-- **lens-security** — Live-key pattern (`sk_live_*`) committed in source. Detected by push protection; assume the key is already revoked.
-  Suggestion: Move to a server-side env var; never ship to the client bundle.
-- **lens-react-perf** — Client `useEffect` fetch creates a render → fetch → render waterfall.
-  Suggestion: Hoist to a Server Component and pass `bio` via props.
-- **lens-bugs** — `userId` is captured in the URL but missing from the deps array — stale when the prop changes.
-  Suggestion: Add `userId` to the deps (and address the perf issue first).
+###### 1. Client useEffect fetch with hardcoded API key
+
+`src/components/Profile.tsx:4-10` · 3 perspectives
+
+- **security** — Live-key pattern (`sk_live_*`) committed in source. Push protection assumes the key is already revoked.
+  → Move to a server-side env var; never ship to the client bundle.
+- **react-perf** — Client `useEffect` fetch creates a render → fetch → render waterfall.
+  → Hoist to a Server Component and pass `bio` via props.
+- **bugs** — `userId` is in the URL but missing from the deps array — stale when the prop changes.
+  → Add `userId` to the deps (and address the perf issue first).
+
+##### 🟠 High
+
+###### 2. Network HTML rendered via dangerouslySetInnerHTML
+
+`src/components/Profile.tsx:11`
+
+- **security** — HTML from a network response rendered raw. XSS if `/api/user` is ever influenced by user input.
+  → Sanitize server-side or render as text.
 
 ---
-
-## 🟠 High
-
-### 2. Network HTML rendered via dangerouslySetInnerHTML
-
-**File:** `src/components/Profile.tsx:11-11` · **Severity:** High
-**Lenses:** lens-security
-
-- **lens-security** — HTML from a network response rendered raw. If `/api/user` is ever influenced by user input, this is XSS.
-  Suggestion: Sanitize server-side or render as text.
-```
 
 One pass, three angles on the same line range. The lenses don't see each other — the merge happens after they return.
 
