@@ -11,7 +11,7 @@
 
 [빠른 시작](#빠른-시작) · [렌즈](#렌즈) · [왜 이렇게 설계했나](#왜-이렇게-설계했나) · [아키텍처](#아키텍처) · [Lens 추가](docs/adding-a-lens.md)
 
-한국어 · [English](./README.md)
+[English](./README.md) · 한국어
 
 </div>
 
@@ -92,16 +92,16 @@ unstaged 변경사항에 lens-a11y만 돌려줘
 
 ## 렌즈
 
-> _lens_ = 한 관점에 특화된 리뷰어. 표의 6개는 기본 프리셋이며, 자유롭게 추가할 수 있습니다.
+> _lens_ = 한 관점에 특화된 리뷰어. 표의 6개는 기본 프리셋이며, 자유롭게 추가할 수 있습니다. 스킬 이름은 `lens-<name>` 형식입니다 (예: `lens-a11y`).
 
-| Lens                | 출처                                                                                                             | 묻는 질문                              | 인풋                 | 무엇을 잡나                                                                                                    |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `lens-react-perf`   | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | 빠른가?                                | diff                 | Waterfall, RSC 직렬화 부풀림, 번들 사이즈, 렌더링 안티패턴                                                     |
-| `lens-code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | 변경하기 쉬운가?                       | **diff + 파일 전체** | 가독성 · 예측 가능성 · 응집도 · 결합도                                                                         |
-| `lens-bugs`         | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS 정확성 룰                                               | 버그가 있는가?                         | diff                 | Stale closure, deps 누락, hook 순서, race condition, floating promise, 빈 catch, == 강제변환, button type 누락 |
-| `lens-ts`           | Google TypeScript Style Guide + Effective TypeScript                                                             | 타입 시스템과 함께 가는가, 우회하는가? | diff                 | `any`, 무분별한 cast, `!` 단언, `@ts-ignore`, 약한 타입, mutable export                                        |
-| `lens-a11y`         | WCAG 2.2 + ARIA APG                                                                                              | 모두에게 닿는가?                       | diff                 | alt 누락, 이름 없는 아이콘 버튼, 키보드 네비 깨짐, ARIA 오용, focus indicator 제거                             |
-| `lens-security`     | OWASP + 프론트엔드 특화                                                                                          | 데이터가 새지 않는가?                  | diff                 | XSS, 시크릿 노출, 안전하지 않은 저장, 위험한 JS API                                                            |
+| Lens           | 출처                                                                                                             | 묻는 질문                              | 인풋                 | 무엇을 잡나                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `react-perf`   | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | 빠른가?                                | diff                 | Waterfall, RSC 직렬화 부풀림, 번들 사이즈, 렌더링 안티패턴                                                     |
+| `code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | 변경하기 쉬운가?                       | **diff + 파일 전체** | 가독성 · 예측 가능성 · 응집도 · 결합도                                                                         |
+| `bugs`         | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS 정확성 룰                                               | 버그가 있는가?                         | diff                 | Stale closure, deps 누락, hook 순서, race condition, floating promise, 빈 catch, == 강제변환, button type 누락 |
+| `ts`           | Google TypeScript Style Guide + Effective TypeScript                                                             | 타입 시스템과 함께 가는가, 우회하는가? | diff                 | `any`, 무분별한 cast, `!` 단언, `@ts-ignore`, 약한 타입, mutable export                                        |
+| `a11y`         | WCAG 2.2 + ARIA APG                                                                                              | 모두에게 닿는가?                       | diff                 | alt 누락, 이름 없는 아이콘 버튼, 키보드 네비 깨짐, ARIA 오용, focus indicator 제거                             |
+| `security`     | OWASP + 프론트엔드 특화                                                                                          | 데이터가 새지 않는가?                  | diff                 | XSS, 시크릿 노출, 안전하지 않은 저장, 위험한 JS API                                                            |
 
 ## 왜 이렇게 설계했나
 

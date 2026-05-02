@@ -1,23 +1,19 @@
 <p align="center">
-  <img src="docs/assets/header.png" width="512" alt="fe-review-skills" />
+  <img src="docs/assets/header.png" width="300" alt="fe-review-skills" />
 </p>
 
 <div align="center">
 
-# fe-review-skills
-
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20·%20Codex%20·%20Gemini%20CLI-orange.svg)](#quick-start)
 
-**Six specialist lenses review your PR in parallel and merge into one prioritized report.**
+**N specialized frontend guidelines review the same changes in parallel.**
 
 [Quick Start](#quick-start) · [Lenses](#lenses) · [Why this design](#why-this-design) · [Architecture](#architecture) · [Adding a lens](docs/adding-a-lens.md)
 
-[한국어](./README.ko.md) · English
+English · [한국어](./README.ko.md)
 
 </div>
-
----
 
 fe-review-skills is a **skill pack** for AI coding agents (Claude Code · Codex · Gemini CLI). It reviews a git diff or changed files through six concerns (perf · code quality · bugs · types · a11y · security). Each concern is a **lens** — a single-perspective reviewer with its own rules and isolated context, run in parallel. The results merge into one prioritized report.
 
@@ -96,16 +92,16 @@ run lens-a11y on my unstaged changes
 
 ## Lenses
 
-> _lens_ = a single-perspective reviewer. The six in the table are the default preset; add your own freely.
+> _lens_ = a single-perspective reviewer. The six in the table are the default preset; add your own freely. Skill names are `lens-<name>` (e.g. `lens-a11y`).
 
-| Lens                | Source                                                                                                           | Asks                                            | Input            | What it catches                                                                                                               |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `lens-react-perf`   | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                                     | diff             | Request waterfalls, RSC serialization bloat, bundle size, missing memoization, rendering anti-patterns                        |
-| `lens-bugs`         | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                                 | diff             | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
-| `lens-ts`           | Google TypeScript Style Guide + Effective TypeScript                                                             | Is the type system being worked with or around? | diff             | `any`, casual casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                                |
-| `lens-code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                           | **diff + files** | Readability, predictability, cohesion, coupling                                                                               |
-| `lens-a11y`         | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                          | diff             | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
-| `lens-security`     | OWASP + frontend-specific                                                                                        | Is data leaking?                                | diff             | XSS vectors, secret leakage, unsafe storage, dangerous JS APIs                                                                |
+| Lens           | Source                                                                                                           | Asks                                            | Input            | What it catches                                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `react-perf`   | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                                     | diff             | Request waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                             |
+| `code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                           | **diff + files** | Readability, predictability, cohesion, coupling                                                                               |
+| `bugs`         | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                                 | diff             | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
+| `ts`           | Google TypeScript Style Guide + Effective TypeScript                                                             | Is the type system being worked with or around? | diff             | `any`, casual casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                                |
+| `a11y`         | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                          | diff             | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
+| `security`     | OWASP + frontend-specific                                                                                        | Is data leaking?                                | diff             | XSS vectors, secret leakage, unsafe storage, dangerous JS APIs                                                                |
 
 ## Why this design
 
@@ -134,8 +130,6 @@ The token cost doesn't scale at full N×. Each lens declares the input it actual
 <p align="center">
   <img src="docs/assets/architecture.png" alt="Architecture diagram" />
 </p>
-
-The orchestrator (`diff-review`) discovers installed `lens-*` skills in Step 0, then fans out to all of them via the Task tool. Merge and sort happen only in its own context. User-added lenses join the same way.
 
 ## How findings merge
 
@@ -168,10 +162,6 @@ Full guide: [docs/adding-a-lens.md](docs/adding-a-lens.md) — the frontmatter c
 
 Inspired by the Compounding Engineering pattern Toss uses internally — running multiple LLMs in parallel against a single PR.
 
-## License & Credits
+## License
 
 MIT — see [LICENSE](./LICENSE).
-
-- [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills) by Vercel Labs (MIT)
-- [Frontend Fundamentals](https://github.com/toss/frontend-fundamentals) by Toss (MIT)
-- WCAG 2.2 by W3C
