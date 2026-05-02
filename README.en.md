@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.jpg" width="280" alt="fe-review-agents" />
+  <img src="docs/assets/header.jpg" width="260" alt="fe-review-agents" />
 </p>
 
 <div align="center">
@@ -76,14 +76,14 @@ Audit src/components/Header.tsx.
 
 > _reviewer_ = a single-purpose agent. The 6 in the table are the default preset; you can add your own. Agent names follow the form `reviewer-<name>`.
 
-| Reviewer     | Source                                                                                                           | Asks                                  | What it catches                                                                                                               |
-| ------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `react-perf` | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                           | Waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                                     |
-| `quality`    | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                 | Readability, predictability, cohesion, coupling                                                                               |
-| `bugs`       | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                       | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
+| Reviewer     | Source                                                                                                           | Asks                                        | What it catches                                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `react-perf` | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                                 | Waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                                     |
+| `quality`    | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                       | Readability, predictability, cohesion, coupling                                                                               |
+| `bugs`       | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                             | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
 | `ts`         | Google TypeScript Style Guide + Effective TypeScript                                                             | Working with the type system, or around it? | `any`, careless casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                              |
-| `a11y`       | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
-| `security`   | Frontend security patterns (XSS, secret leakage, unsafe storage)                                                 | Is data leaking?                      | XSS, secret leakage, unsafe storage, dangerous JS APIs                                                                        |
+| `a11y`       | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                      | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
+| `security`   | Frontend security patterns (XSS, secret leakage, unsafe storage)                                                 | Is data leaking?                            | XSS, secret leakage, unsafe storage, dangerous JS APIs                                                                        |
 
 ## Why this design
 
@@ -104,7 +104,7 @@ By analogy: instead of asking one person to "review it from every angle," it's *
 
 Tokens scale roughly N× compared to a single-context pass. Two things justify that cost:
 
-- **The absolute cost stays small** — input is bounded to the diff (or a single file). It's *one PR's worth of tokens × N*, not *the entire repo × N*.
+- **The absolute cost stays small** — input is bounded to the diff (or a single file). It's _one PR's worth of tokens × N_, not _the entire repo × N_.
 - **Hard guard** — diff mode bails out if the filtered diff exceeds 2,000 lines, blocking blowups structurally.
 
 What that N× buys: multi-perspective coverage with no reasoning contamination, no mode collapse. No single-context pass can structurally produce that, no matter how the prompt is written — that's this project's bet.

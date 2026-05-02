@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.jpg" width="280" alt="fe-review-agents" />
+  <img src="docs/assets/header.jpg" width="260" alt="fe-review-agents" />
 </p>
 
 <div align="center">
