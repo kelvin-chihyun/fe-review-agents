@@ -7,7 +7,7 @@ Project-specific guidance for Claude Code.
 `fe-review-agents` is a Claude Code plugin. The repo doubles as its own marketplace via `.claude-plugin/marketplace.json`. It ships:
 
 - Two slash commands (`commands/diff-review.md`, `commands/file-review.md`) that orchestrate a multi-reviewer review.
-- Six reviewer agents (`agents/reviewer-{perf,quality,bugs,ts,a11y,security}.md`).
+- Six reviewer agents (`agents/reviewer-{react-perf,quality,bugs,ts,a11y,security}.md`).
 - A synthesizer agent (`agents/synthesizer.md`) that merges 6 reviewer outputs into a single prioritized markdown report.
 - A plugin manifest (`.claude-plugin/plugin.json`) + a single-plugin marketplace manifest (`.claude-plugin/marketplace.json`).
 
@@ -38,7 +38,7 @@ Distribution: GitHub repo as marketplace. Users install in Claude Code via `/plu
   plugin.json                   plugin manifest ({name, version, description})
   marketplace.json              single-plugin marketplace manifest ({name, owner, plugins[].source: "./"})
 agents/
-  reviewer-{perf,quality,bugs,ts,a11y,security}.md   six reviewers (frontmatter: name + description + tools)
+  reviewer-{react-perf,quality,bugs,ts,a11y,security}.md   six reviewers (frontmatter: name + description + tools)
   synthesizer.md                                     merger (frontmatter: name + description)
 commands/
   diff-review.md                git-diff orchestrator (frontmatter: description + argument-hint)

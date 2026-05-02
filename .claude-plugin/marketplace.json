@@ -8,7 +8,7 @@
     {
       "name": "fe-review-agents",
       "source": "./",
-      "description": "6 reviewers (perf, quality, bugs, ts, a11y, security) + synthesizer. /diff-review, /file-review."
+      "description": "6 reviewers (react-perf, quality, bugs, ts, a11y, security) + synthesizer. /diff-review, /file-review."
     }
   ]
 }

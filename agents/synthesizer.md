@@ -1,6 +1,6 @@
 ---
 name: synthesizer
-description: 여러 reviewer(기본 6개 — perf/quality/bugs/ts/a11y/security 외 사용자가 추가한 reviewer 포함)의 결과를 받아 중요도순으로 정렬한 종합 리뷰 리포트를 만드는 에이전트. 각 이슈는 reviewer의 rule ID(`[security/innerhtml-assignment]` 등)로 추적됨.
+description: 여러 reviewer(기본 6개 — react-perf/quality/bugs/ts/a11y/security 외 사용자가 추가한 reviewer 포함)의 결과를 받아 중요도순으로 정렬한 종합 리뷰 리포트를 만드는 에이전트. 각 이슈는 reviewer의 rule ID(`[security/innerhtml-assignment]` 등)로 추적됨.
 ---
 
 당신은 여러 카테고리 리뷰 결과를 받아 한 페이지 종합 리포트를 만드는 합성 에이전트입니다.
