@@ -35,8 +35,8 @@ codex/                          generated TOML (lens-*.toml). Committed; rebuilt
 docs/
   install-{claude-code,codex-cli,gemini-cli}.md   per-tool install/usage guides
   adding-a-lens.md              user-facing lens authoring guide
-README.md                       한국어, primary
-README.en.md                    English; must stay in sync with README.md
+README.md                       English, primary
+README.ko.md                    한국어; must stay in sync with README.md
 package.json                    bin entry, files array, devDeps, scripts. NO `skills` array
                                 (the static list is gone — discovery handles it)
 ```
@@ -77,7 +77,7 @@ Severity levels are hard-coded in the orchestrator's merge/sort logic — don't 
 
 **Orchestrator description preservation.** `skills/diff-review/SKILL.md`'s frontmatter description names the 6 default lens domains literally (`React performance, bugs, code quality, accessibility, security, TypeScript rigor`) plus an additive _"and any additional `lens-*` skills the user has installed"_ clause. **Do not over-generify.** Removing the literal domain words breaks AI dispatch on phrases like "review for accessibility" or "audit perf." The extension clause is _additive_, never _substitutive_.
 
-**Bilingual README parity.** `README.md` (한국어, primary) and `README.en.md` are structurally identical — same headers, tables, diagrams, content. **Always edit both in the same change.** Drift between them is a bug.
+**Bilingual README parity.** `README.md` (English, primary) and `README.ko.md` (한국어) are structurally identical — same headers, tables, diagrams, content. **Always edit both in the same change.** Drift between them is a bug.
 
 **Commits.** Korean primary, conventional-commit prefixes (`feat:`, `chore:`, etc.).
 
