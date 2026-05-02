@@ -7,27 +7,26 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code-orange.svg)](#quick-start)
 
-**6 specialized frontend reviewers, dispatched in parallel, each in an isolated context.**
+**N frontend guidelines review the same change at the same time.**
 
-[Quick Start](#quick-start) · [Reviewers](#reviewers) · [Why this design](#why-this-design) · [Architecture](#architecture) · [Adding a reviewer](docs/adding-a-reviewer.md)
+[Quick Start](#quick-start) · [Reviewers](#reviewers) · [Why this design](#why-this-design) · [Architecture](#architecture) · [Customizing](docs/adding-a-reviewer.md)
 
 [한국어](./README.md) · English
 
 </div>
 
-A **multi-reviewer code-review plugin** for Claude Code. It reviews a git diff or a single file from 6 perspectives (perf · code quality · bugs · types · a11y · security). Each perspective is a **reviewer**: a single-purpose agent with its own ruleset, dispatched in a single message alongside the others. A synthesizer agent merges the 6 outputs into one prioritized markdown report.
+A **multi-reviewer code-review plugin** for Claude Code. Reviews a git diff or a single file from 6 perspectives. Each **reviewer** is a single-purpose agent with its own ruleset, dispatched together with the others in one shot. A synthesizer agent merges the 6 outputs into a single report.
 
-The default preset follows _well-known, established frontend guidelines_ directly. Add your own reviewer by creating an agent file and registering it in both slash commands.
+The default preset follows _well-established frontend guidelines_ directly. To add your own reviewer, create an agent file and register it in both slash commands.
 
 ## Key Features
 
 - **Expert reviewers** — Vercel React Best Practices · Toss Frontend Fundamentals · Effective TypeScript · WCAG 2.2 · OWASP-style frontend security.
-- **Single-message dispatch** — All 6 reviewers fire from one assistant message. The runtime decides whether they wall-clock-parallel or serialize; we don't promise wall time, but the orchestration is set up to maximize concurrency.
-- **Isolated per-reviewer context** — Each reviewer reviews in its own sub-agent context. No cross-axis reasoning contamination, no mode collapse.
-- **Two entry points** — `/fe-review-agents:diff-review [scope]` for git diff (PR review), `/fe-review-agents:file-review <path>` for a single file (deep dive on one component).
-- **Markdown synthesis** — Reviewers emit one-line findings with stable `[axis/rule-id]` tags; synthesizer sorts by severity and produces a single readable report.
-- **Bilingual** — `lang=ko` (default) or `lang=en`.
+- **Single-message dispatch** — All 6 reviewers fire from one assistant message at once.
+- **Isolated context** — Each reviewer runs in its own sub-agent context. No cross-axis reasoning contamination, no mode collapse.
+- **Two entry points** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (single-file deep dive).
 - **Simple setup** — One command (`npx fe-review-agents install`), one runtime dependency (Claude Code).
+- **Language option** — `lang=ko` (default) or `lang=en`.
 
 ## Quick Start
 
@@ -69,7 +68,7 @@ Or in natural language:
 
 ```
 Review my staged changes.
-Audit src/components/Header.tsx for issues.
+Audit src/components/Header.tsx.
 ```
 
 | Option  | Default  | Values                                                  | Applies to    |
@@ -83,48 +82,51 @@ Each reviewer can also be invoked standalone:
 @reviewer-a11y
 ```
 
-Or:
-
-```
-Just check this for accessibility issues.
-```
-
 ## Reviewers
 
-> _reviewer_ = a single-purpose agent. The 6 in the table are the default preset; add your own freely. Agent names follow the form `reviewer-<name>` (e.g. `reviewer-a11y`).
+> _reviewer_ = a single-purpose agent. The 6 in the table are the default preset; you can add your own. Agent names follow the form `reviewer-<name>`.
 
-| Reviewer            | Source                                                                                                           | Asks                                            | What it catches                                                                                                               |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `reviewer-react-perf`     | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                                     | Waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                                     |
-| `reviewer-quality`  | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                           | Readability, predictability, cohesion, coupling                                                                               |
-| `reviewer-bugs`     | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                                 | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
-| `reviewer-ts`       | Google TypeScript Style Guide + Effective TypeScript                                                             | Is the type system being worked with or around? | `any`, careless casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                              |
-| `reviewer-a11y`     | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                          | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
-| `reviewer-security` | Frontend security patterns (XSS, secret leakage, unsafe storage)                                                 | Is data leaking?                                | XSS, secret leakage, unsafe storage, dangerous JS APIs                                                                        |
+| Reviewer     | Source                                                                                                           | Asks                                  | What it catches                                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `react-perf` | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                           | Waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                                     |
+| `quality`    | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                 | Readability, predictability, cohesion, coupling                                                                               |
+| `bugs`       | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                       | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
+| `ts`         | Google TypeScript Style Guide + Effective TypeScript                                                             | Working with the type system, or around it? | `any`, careless casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                              |
+| `a11y`       | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
+| `security`   | Frontend security patterns (XSS, secret leakage, unsafe storage)                                                 | Is data leaking?                      | XSS, secret leakage, unsafe storage, dangerous JS APIs                                                                        |
 
 ## Why this design
 
 ### Why isn't one perspective enough?
 
-Each guideline answers a _different question_ — perf asks _is it fast_, a11y asks _can everyone reach it_, security asks _is data leaking_. The perspectives barely overlap, so running just one will entirely miss the issues the others would catch. It's like taking the multiple viewpoints a senior reviewer simultaneously juggles in their head when looking at a PR, and lifting them directly into a tool.
+Each guideline answers a _different question_. perf asks _is it fast_, a11y asks _can everyone reach it_, security asks _is data leaking_. The perspectives barely overlap, so running just one entirely misses the issues the others would catch. It's the multiple perspectives a senior reviewer juggles in their head when looking at a PR, lifted directly into a tool.
 
-### Why isolated sub-agents (instead of one model with one prompt)?
+### Why not have one model do all of it?
 
-Telling one model "review this PR for perf, quality, a11y, security, types, and bugs at the same time" produces lower-quality output than dispatching each as a sub-agent with its own context. Two structural reasons:
+There are 2 structural reasons to split the guidelines into independent sub-agents instead of asking one model to handle them all at once:
 
-1. **No reasoning contamination** — In a single context, the perf finding's framing colors the a11y finding's tone. Split into sub-agents, each reviewer does its job _without knowing_ what the others caught.
-2. **No mode collapse** — One context "review for everything" tends to gravitate toward whichever axis is loudest in the diff. Physically separate contexts make that impossible.
+1. **No reasoning contamination** — In a single context, the framing of a perf finding colors the framing of an a11y finding. Split into sub-agents, each reviewer does its job _without knowing_ what the others caught.
+2. **No mode collapse** — A single "review for everything" context tends to gravitate toward whichever axis is loudest in the diff. With contexts physically separated, that gravitation can't happen.
 
-By analogy: instead of asking one person to "review it from every angle," it's **a panel of specialist reviewers placed in isolated rooms with the same change in hand, gathered afterward to reconcile conflicts and overlap**.
+By analogy: instead of asking one person to "review it from every angle," it's **a panel of specialist reviewers in isolated rooms reviewing the same change, gathered afterward to reconcile conflicts and overlap**.
+
+### Is the N× worth it?
+
+Tokens scale roughly N× compared to a single-context pass. Two things justify that cost:
+
+- **The absolute cost stays small** — input is bounded to the diff (or a single file), not the whole codebase. It's *one PR's worth of tokens × N*, not *the entire repo × N*.
+- **Hard guard** — diff mode bails out if the filtered diff exceeds 2,000 lines, blocking blowups structurally.
+
+What that N× buys: multi-perspective coverage with no reasoning contamination, no mode collapse. No single-context pass can structurally produce that, no matter how the prompt is written — that's this project's bet.
 
 ### Single-message dispatch (parallel intent)
 
-The slash commands instruct the main session to issue all 6 `Agent` tool_use blocks in one message. The runtime decides whether to run them concurrently or in sequence; we don't promise either way. **The architecture is set up to maximize concurrency where the runtime allows it.** The synthesizer step runs once after all 6 reviewers return.
+The slash commands instruct the main session to issue all 6 `Agent` tool_use blocks in one message. The runtime decides whether they actually run concurrently, so we don't promise wall time. **That said, the architecture is set up to maximize concurrency within whatever the runtime allows.** The synthesizer step runs once after all 6 reviewers return.
 
 ### Two modes, same fan-out
 
 - **`/fe-review-agents:diff-review`** is for PR-style review: collect the relevant diff (staged / unstaged / branch / range), filter to frontend files, fire the 6 reviewers on the diff text.
-- **`/fe-review-agents:file-review`** is for single-file deep dives: each reviewer `Read`s the file directly. Useful when you want a fresh-eyes review of one component before opening a PR.
+- **`/fe-review-agents:file-review`** is for single-file deep dives: each reviewer `Read`s the file directly. Useful for a fresh-eyes pass on one component before opening a PR.
 
 Both go through the same 6 reviewers and the same synthesizer.
 
@@ -134,21 +136,9 @@ Both go through the same 6 reviewers and the same synthesizer.
   <img src="docs/assets/architecture-en.png" width="640" alt="Architecture diagram" />
 </p>
 
-## How findings merge
-
-Each reviewer emits one-line findings:
-
-```markdown
-### ⚡ Performance
-
-- **[perf/server-fetch-in-effect]** [HIGH] Line 23: useEffect for initial data fetch — Move to a Server Component, pass via props.
-```
-
-The synthesizer collects all 6 reviewer outputs, sorts by severity (`CRITICAL` → `HIGH` → `MED` → `LOW`), and emits a single report. Multiple reviewers flagging the same line with different rule IDs both stay in the output — they're different perspectives. Identical rule IDs at the same line dedupe.
-
 ## Sample output
 
-A single change can fire multiple reviewers on the same lines. Here's a hunk that hits three:
+A single change can fire multiple reviewers on the same line.
 
 ```diff
 + export default function Profile({ userId }) {
@@ -166,7 +156,7 @@ A single change can fire multiple reviewers on the same lines. Here's a hunk tha
 + }
 ```
 
-`/fe-review-agents:diff-review` returns a single prioritized report:
+The single prioritized report `/fe-review-agents:diff-review` returns:
 
 ---
 
@@ -182,26 +172,26 @@ A single change can fire multiple reviewers on the same lines. Here's a hunk tha
 ###### 🔴 CRITICAL
 
 - **[security/hardcoded-secret]** Line 6: API key (`sk_live_*`) committed in source — Move to a server-side env var; never ship to the client bundle.
-- **[security/dangerously-set-inner-html]** Line 11: HTML from network response rendered raw — Sanitize server-side or render as text.
+- **[security/dangerously-set-inner-html]** Line 11: HTML from a network response rendered raw — Sanitize server-side or render as text.
 
 ###### 🟠 HIGH
 
 - **[perf/server-fetch-in-effect]** Line 4: useEffect for initial data fetch — Move to a Server Component, pass via props.
-- **[bugs/effect-missing-dep]** Line 4: useEffect references `userId` but deps array is `[]` — Add `userId` to deps (and address perf issue first).
-
-##### Summary
-
-Two CRITICAL security issues need immediate attention — rotate the leaked API key and sanitize the HTML before rendering. The perf and bugs findings cluster at the same useEffect; fixing the perf issue (Server Component) will dissolve the missing-dep issue too.
+- **[bugs/effect-missing-dep]** Line 4: useEffect references `userId` but the deps array is `[]` — Add `userId` to deps (after addressing the perf issue first).
 
 ---
 
-One pass, three reviewers on the same line range. The reviewers don't see each other — the merge happens after they return.
+One pass, three reviewers firing on the same line range. The reviewers don't see each other's results; the merge happens after they all return.
 
 ## Adding a reviewer
 
-If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), drop in `agents/reviewer-<name>.md` then register it in both slash commands' dispatch lists and synthesizer prompts.
+If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), drop in `agents/reviewer-<name>.md` and register it in both slash commands' dispatch lists and synthesizer prompts.
 
-Full guide: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md) — frontmatter contract, output format, rule-catalog format, boundary discipline (don't overlap with other reviewers), and a copy-paste-ready agent skeleton.
+Full guide: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)
+
+## Inspiration
+
+This project draws inspiration from the Compounding Engineering pattern Toss uses internally (multiple LLMs reviewing a PR in parallel).
 
 ## License
 

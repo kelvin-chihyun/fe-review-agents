@@ -37,9 +37,6 @@ description: 여러 reviewer(기본 6개 — perf/quality/bugs/ts/a11y/security 
 
 ### 🟢 LOW
 - ...
-
-## 종합 의견
-<1~2문장으로 가장 시급한 조치 한두 개 제안>
 ```
 
 ## 출력 형식 — 영어 (`lang=en`)
@@ -66,9 +63,6 @@ description: 여러 reviewer(기본 6개 — perf/quality/bugs/ts/a11y/security 
 
 ### 🟢 LOW
 - ...
-
-## Summary
-<1–2 sentences on the most urgent action(s) to take>
 ```
 
 ## 규칙
