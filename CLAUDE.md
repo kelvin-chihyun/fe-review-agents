@@ -18,7 +18,7 @@ Project-specific guidance for Claude Code.
 
 - Filtered diff > 2,000 lines → ask user to narrow scope
 - Single file > 1,000 lines → exclude from changed-files bundle (that file falls back to diff-only)
-- Total file content > 50KB → switch to per-file mode (one sub-agent per file × per changed-files lens; cross-file rules explicitly skipped)
+- Total file content > 100KB → switch to per-file mode (one sub-agent per file × per changed-files lens; cross-file rules explicitly skipped)
 
 ## File layout
 

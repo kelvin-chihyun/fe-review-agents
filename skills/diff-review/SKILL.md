@@ -104,17 +104,19 @@ Skip files **deleted** in this diff (no post-change content exists).
 **Size guards** (these affect Step 2 strategy):
 
 - If a single file exceeds 1,000 lines, exclude it from the changed-files bundle. Lenses with `input-mode: changed-files` will fall back to diff-only for that file. Note this in the report footer.
-- If the total content of all included files exceeds 50KB, switch to **per-file mode** in Step 2.
+- If the total content of all included files exceeds 100KB, switch to **per-file mode** in Step 2.
 
 ### Step 2 — Fan out to lenses (parallel)
 
 For each enabled lens, read its `input-mode` from its SKILL.md frontmatter. Default to `diff` if not specified. Different lenses may receive different inputs in the same review run — that's intentional (see "Why per-lens input" in the README).
 
+**Dispatch prompt discipline.** Use the templates below verbatim. Do NOT append filesystem paths to SKILL.md, "read SKILL.md first" instructions, or restated finding-schema fields. The Skill tool auto-loads the lens's SKILL.md content when the sub-agent invokes `Use the <lens-name> skill`; pointing to the file forces a redundant Read tool call per agent and inflates dispatch latency.
+
 #### Diff-mode lenses (`input-mode: diff`)
 
 Spawn a sub-agent (Task tool) with this exact instruction:
 
-> Use the `<lens-name>` skill. Review the diff below and return ONLY a JSON array of findings matching the schema in that skill's SKILL.md. Do not include any prose, markdown, or explanation outside the JSON. If there are no issues, return `[]`.
+> Use the `<lens-name>` skill — invoking it loads its rule catalog and finding schema, so do not Read SKILL.md. Review the diff below and return ONLY a JSON array of findings. Do not include any prose, markdown, or explanation outside the JSON. If there are no issues, return `[]`.
 >
 > ```diff
 > <full diff content>
@@ -124,13 +126,13 @@ Spawn a sub-agent (Task tool) with this exact instruction:
 
 Pick the strategy based on the size guards from Step 1c.
 
-**Single-call strategy** — when total file content < 50KB. Spawn one sub-agent with the diff plus all file contents:
+**Single-call strategy** — when total file content < 100KB. Spawn one sub-agent with the diff plus all file contents:
 
-> Use the `<lens-name>` skill. The following files were modified. The diff shows what changed; the full file contents are provided so you can analyze structural properties (cohesion, coupling, full function context).
+> Use the `<lens-name>` skill — invoking it loads its rule catalog and finding schema, so do not Read SKILL.md. The following files were modified. The diff shows what changed; the full file contents are provided so you can analyze structural properties (cohesion, coupling, full function context).
 >
 > CRITICAL: Only emit findings for code that appears in the diff hunks. Do NOT flag pre-existing code that wasn't part of this change.
 >
-> Return ONLY a JSON array of findings matching the schema in the SKILL.md. Return `[]` if no issues.
+> Return ONLY a JSON array of findings. Return `[]` if no issues.
 >
 > DIFF:
 >
@@ -154,9 +156,9 @@ Pick the strategy based on the size guards from Step 1c.
 >
 > ...
 
-**Per-file strategy** — when total file content ≥ 50KB. For each changed file in scope, spawn a separate sub-agent:
+**Per-file strategy** — when total file content ≥ 100KB. For each changed file in scope, spawn a separate sub-agent:
 
-> Use the `<lens-name>` skill. The following file was modified. The diff hunks for this file are below; the full file content is provided for structural analysis.
+> Use the `<lens-name>` skill — invoking it loads its rule catalog and finding schema, so do not Read SKILL.md. The following file was modified. The diff hunks for this file are below; the full file content is provided for structural analysis.
 >
 > CRITICAL: Only emit findings for code that appears in the diff hunks. Do NOT flag pre-existing untouched code. Cross-file rules (e.g., `coupling/circular-domain`, `predictability/same-name-divergent-behavior`) may not fire reliably in this mode — skip rather than guess.
 >

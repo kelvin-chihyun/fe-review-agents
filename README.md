@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.png" width="300" alt="fe-review-skills" />
+  <img src="docs/assets/header.png" width="280" alt="fe-review-skills" />
 </p>
 
 <div align="center">
@@ -15,19 +15,19 @@ English · [한국어](./README.ko.md)
 
 </div>
 
-fe-review-skills is a **skill pack** for AI coding agents (Claude Code · Codex · Gemini CLI). It reviews a git diff or changed files through six concerns (perf · code quality · bugs · types · a11y · security). Each concern is a **lens** — a single-perspective reviewer with its own rules and isolated context, run in parallel. The results merge into one prioritized report.
+A **skill pack** for AI coding agents (Claude Code · Codex · Gemini CLI). It reviews a git diff or changed files from 6 perspectives (perf · code quality · bugs · types · a11y · security). Each perspective is defined as a **lens**. A lens is a single-perspective reviewer with its own ruleset and isolated context, running in parallel. The results merge into one prioritized report.
 
-The default preset draws straight from _well-known, established frontend guidelines_. Adding a new lens is just dropping in a folder — the orchestrator auto-discovers any installed `lens-*`.
+The default preset follows _well-known, established frontend guidelines_ directly. To add a new lens, just create a folder. The orchestrator auto-discovers installed `lens-*`.
 
 ## Key Features
 
-- **Six expert lenses** — Vercel React Best Practices · Toss Frontend Fundamentals · Effective TypeScript · WCAG 2.2 · OWASP · etc.
-- **Parallel sub-agents** — Each lens in an isolated context: no reasoning contamination, no mode collapse, no contention for the same window
-- **Smart input routing** — Diff for line-level rules, full file content for structural rules; cost stays close to _"diff × N + α"_ not _"full codebase × N"_
-- **Perspective-preserving merge** — Same code flagged by multiple lenses becomes one issue with all viewpoints kept side-by-side
-- **One-command setup** — `npx fe-review-skills install <tool>` bootstraps a fresh repo (Claude Code · Codex · Gemini CLI)
-- **Easily add lenses** — Drop in a `skills/lens-<name>/` folder and it joins on the next call. No edits to the orchestrator required.
-- **Conservative by design** — Skip uncertain patterns rather than emit speculation; false positives erode trust faster than missed issues
+- **Expert lenses** — Vercel React Best Practices · Toss Frontend Fundamentals · Effective TypeScript · WCAG 2.2 · OWASP, etc.
+- **Parallel sub-agents** — Each lens runs in an isolated context, so no reasoning contamination, mode collapse, or context contention
+- **Smart input routing** — Diff only for line-level rules, full files for structural rules. Cost stays at _"diff × N + α", not "full codebase × N"_
+- **Perspective-preserving merge** — When multiple lenses catch the same code, all perspectives are preserved side-by-side in one issue
+- **Simple setup** — Start instantly in a fresh repo with one command (Claude Code · Codex · Gemini CLI)
+- **Add lenses freely** — Drop in a `skills/lens-<name>/` folder and it joins on the next call without any orchestrator edits
+- **Conservative by design** — Skip uncertain patterns deliberately. The judgment: one false positive erodes trust more than one missed issue
 
 ## Quick Start
 
@@ -46,14 +46,14 @@ npx fe-review-skills install gemini-cli
 
 Options:
 
-- `--global` — install under `~/<tool-dir>` (apply to every project)
+- `--global` — install under `~/<tool-dir>` (use across every project)
 - `--dry-run` — preview destination paths without writing
 
 Per-tool guides: [Claude Code](docs/install-claude-code.md) · [Codex](docs/install-codex-cli.md) · [Gemini CLI](docs/install-gemini-cli.md).
 
 ### Use
 
-After install, in Claude Code use the slash command or natural language:
+After install, invoke from Claude Code via slash command or natural language:
 
 ```
 /diff-review
@@ -71,14 +71,14 @@ With options:
 review my diff with lang=ko severity_min=high lenses=perf,a11y
 ```
 
-| Option         | Default       | Values                                                                                                                                            |
-| -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scope`        | `staged`      | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>`                                                                                           |
-| `lang`         | `en`          | `en`, `ko`                                                                                                                                        |
-| `lenses`       | all installed | comma-list of short names matching installed lenses (`perf` → `lens-react-perf`, `quality` → `lens-code-quality`, otherwise the lens-name suffix) |
-| `severity_min` | `high`        | `critical`, `high`, `medium`, `low`                                                                                                               |
+| Option         | Default       | Values                                                                                                   |
+| -------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
+| `scope`        | `staged`      | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>`                                                  |
+| `lang`         | `en`          | `en`, `ko`                                                                                               |
+| `lenses`       | all installed | comma list (`perf` → `lens-react-perf`, `quality` → `lens-code-quality`, otherwise the lens-name suffix) |
+| `severity_min` | `high`        | `critical`, `high`, `medium`, `low`                                                                      |
 
-Each lens runs standalone too:
+Each lens can be invoked standalone:
 
 ```
 /lens-a11y
@@ -87,43 +87,43 @@ Each lens runs standalone too:
 Or:
 
 ```
-run lens-a11y on my unstaged changes
+run only lens-a11y on my unstaged changes
 ```
 
 ## Lenses
 
-> _lens_ = a single-perspective reviewer. The six in the table are the default preset; add your own freely. Skill names are `lens-<name>` (e.g. `lens-a11y`).
+> _lens_ = a single-perspective reviewer. The 6 in the table are the default preset; add your own freely. Skill names follow the form `lens-<name>` (e.g. `lens-a11y`).
 
 | Lens           | Source                                                                                                           | Asks                                            | Input            | What it catches                                                                                                               |
 | -------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `react-perf`   | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                                     | diff             | Request waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                             |
+| `react-perf`   | [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | Is it fast?                                     | diff             | Waterfalls, RSC serialization bloat, bundle size, rendering anti-patterns                                                     |
 | `code-quality` | [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals)                                      | Is it easy to change?                           | **diff + files** | Readability, predictability, cohesion, coupling                                                                               |
 | `bugs`         | React rules-of-hooks + ESLint/TS-ESLint + JS/TS/HTML/CSS correctness rules                                       | Are there bugs?                                 | diff             | Stale closures, missing deps, hook order, race conditions, floating promises, empty catches, == coercion, missing button type |
-| `ts`           | Google TypeScript Style Guide + Effective TypeScript                                                             | Is the type system being worked with or around? | diff             | `any`, casual casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                                |
+| `ts`           | Google TypeScript Style Guide + Effective TypeScript                                                             | Is the type system being worked with or around? | diff             | `any`, careless casts, `!` assertions, `@ts-ignore`, weak types, mutable exports                                              |
 | `a11y`         | WCAG 2.2 + ARIA APG                                                                                              | Can everyone reach it?                          | diff             | Missing alt, unnamed icon buttons, broken keyboard nav, ARIA misuse, focus indicator removal                                  |
-| `security`     | OWASP + frontend-specific                                                                                        | Is data leaking?                                | diff             | XSS vectors, secret leakage, unsafe storage, dangerous JS APIs                                                                |
+| `security`     | OWASP + frontend-specific                                                                                        | Is data leaking?                                | diff             | XSS, secret leakage, unsafe storage, dangerous JS APIs                                                                        |
 
 ## Why this design
 
-### Why isn't one lens enough?
+### Why isn't one perspective enough?
 
-Each upstream guideline asks a _different question_ — perf asks _is it fast_, a11y asks _can everyone reach it_, security asks _is data leaking_. The angles are nearly orthogonal: pick any one and you systematically miss what the others would have caught. It's the six heads a senior reviewer juggles on a single PR, lifted directly into the tool.
+Each guideline answers a _different question_ — perf asks _is it fast_, a11y asks _can everyone reach it_, security asks _is data leaking_. The perspectives barely overlap, so running just one will entirely miss the issues the others would catch. It's like taking the multiple viewpoints a senior reviewer simultaneously juggles in their head when looking at a PR, and lifting them directly into a tool.
 
 ### Why not run them all in one model?
 
-We don't ask one model to apply all six lenses at once. Each lens runs as its own sub-agent — and there are **three structural reasons** for that:
+Rather than asking one model to handle multiple guidelines at once, **launching each as an independent sub-agent has 3 structural reasons**:
 
-1. **No reasoning contamination** — Run perf → a11y → security sequentially in one context and the earlier lens's findings, framing, and severity calls color the later one's tone and priorities. Split into sub-agents and the perf lens does its job _without knowing_ what a11y caught.
-2. **No mode collapse** — Tell one model "review this PR for perf, quality, a11y, and security" and it consistently collapses toward whichever angle is loudest or most familiar (one obvious security issue and the whole tone tilts security). Physically separating contexts makes that collapse structurally impossible.
-3. **Context budget + parallelism** — Each child's full reasoning is spent in its own window; only the structured finding JSON returns to the parent. The six children run wall-clock in parallel — adding lenses barely adds time.
+1. **Preventing reasoning contamination** — Running perf → a11y → security sequentially in the same context lets the earlier lens's findings and severity calls color the later lens's tone. Split into sub-agents, the perf lens does its own job _without knowing_ what a11y caught.
+2. **Avoiding mode collapse** — Tell one context "review this PR for perf, quality, a11y, and security" and the model gets pulled into whichever axis is loudest. Physically separating contexts makes that collapse structurally impossible.
+3. **Context budget + parallelism** — Each child's full reasoning is spent in the child's context, and only structured finding JSON returns to the parent. The children run wall-clock in parallel, so adding lenses barely adds time.
 
-Think of it as **a panel review**: instead of asking one reviewer to wear six hats, six specialist reviewers sit in isolated rooms with the same change, finish independently, and only then meet to reconcile overlap.
+By analogy: instead of asking one person to "review it from every angle," it's **a panel review where multiple specialist reviewers are placed in isolated rooms with the same change in hand, then gather afterward to reconcile conflicts and overlap**.
 
 ### Why doesn't cost scale at N×?
 
-The token cost doesn't scale at full N×. Each lens declares the input it actually needs: the five line- or function-level lenses (bugs / a11y / security / perf / ts) take **only the diff**, while `lens-code-quality` — the only one checking structural properties like cohesion and coupling — additionally takes the **full content of changed files**.
+We don't burn tokens in proportion to lens count — each lens has a different _unit of judgment_, so the input differs too. The 5 lenses checking line- or function-level rules (bugs / a11y / security / perf / ts) get **only the diff**, while just one — `lens-code-quality`, which checks structural rules like cohesion and coupling — additionally gets the **full content of changed files**.
 
-**With 5 of 6 lenses seeing only the diff, the total token usage drops sharply** — the real shape is _"diff × N + α"_, not _"full codebase × N"_. That's the deliberate trade — the bet is that _consistent multi-angle coverage_ is something a single 1× model pass cannot structurally buy, no matter how the prompt is written.
+**Since 5 of 6 lenses only see the diff, total token usage drops sharply** — the real cost stays at _"diff × N + α", not "full codebase × N"_. And what that cost buys — _consistent coverage from multiple perspectives_ — is something _no single-model pass can structurally achieve, no matter how the prompt is written_. That's this project's bet.
 
 ## Architecture
 
@@ -148,19 +148,77 @@ Each lens returns a JSON array of findings:
 }
 ```
 
-The merger groups findings by `file` + overlapping line ranges. When multiple lenses fire on the same code, the merged issue preserves every perspective — for example, a `useEffect` fetching data may produce a `lens-react-perf` finding (waterfall), a `lens-code-quality` finding (hidden side effect), and a `lens-bugs` finding (setState-after-unmount race) on the same lines. The reviewer sees one issue with three angles, not three duplicate alerts.
+Merging groups findings by `file` + overlapping line ranges. When multiple lenses fire on the same code at once, the merged issue preserves all perspectives — for example, a `useEffect` that fetches data can be caught simultaneously in three places: `lens-react-perf` (waterfall), `lens-code-quality` (hidden side effect), and `lens-bugs` (setState race after unmount). The reviewer sees one issue with three perspectives, not three duplicate alerts.
 
-Final severity is the max across perspectives. Sort is by severity desc, then file path, then line number.
+Final severity is the max across perspectives. Sort: severity descending → file path → line number.
+
+## Sample output
+
+A single change can fire multiple lenses on the same lines. Here's a hunk that hits three:
+
+```diff
++ export default function Profile({ userId }) {
++   const [bio, setBio] = useState('');
++
++   useEffect(() => {
++     fetch('/api/user/' + userId, {
++       headers: { 'X-API-Key': 'sk_live_<YOUR_KEY>' },
++     })
++       .then(r => r.json())
++       .then(d => setBio(d.bio));
++   }, []);
++
++   return <div dangerouslySetInnerHTML={{ __html: bio }} />;
++ }
+```
+
+`/diff-review` returns a single prioritized report. Findings on overlapping lines merge into one issue with each lens's view preserved:
+
+```markdown
+# Code Review
+
+**Scope:** staged · **Files reviewed:** 1 · **Issues:** 2 (Critical: 1 / High: 1 / Medium: 0 / Low: 0)
+
+---
+
+## 🔴 Critical
+
+### 1. Client useEffect fetch with hardcoded API key
+
+**File:** `src/components/Profile.tsx:4-10` · **Severity:** Critical
+**Lenses:** lens-security, lens-react-perf, lens-bugs
+
+- **lens-security** — Live-key pattern (`sk_live_*`) committed in source. Detected by push protection; assume the key is already revoked.
+  Suggestion: Move to a server-side env var; never ship to the client bundle.
+- **lens-react-perf** — Client `useEffect` fetch creates a render → fetch → render waterfall.
+  Suggestion: Hoist to a Server Component and pass `bio` via props.
+- **lens-bugs** — `userId` is captured in the URL but missing from the deps array — stale when the prop changes.
+  Suggestion: Add `userId` to the deps (and address the perf issue first).
+
+---
+
+## 🟠 High
+
+### 2. Network HTML rendered via dangerouslySetInnerHTML
+
+**File:** `src/components/Profile.tsx:11-11` · **Severity:** High
+**Lenses:** lens-security
+
+- **lens-security** — HTML from a network response rendered raw. If `/api/user` is ever influenced by user input, this is XSS.
+  Suggestion: Sanitize server-side or render as text.
+```
+
+One pass, three angles on the same line range. The lenses don't see each other — the merge happens after they return.
 
 ## Adding a lens
 
-When the default 6 lenses don't cover a perspective your team needs (i18n, motion / `prefers-reduced-motion`, dependency hygiene, design tokens, etc.), drop a new `skills/lens-<name>/SKILL.md` folder in. The orchestrator auto-discovers installed `lens-*` skills, so README, `package.json`, and the orchestrator stay untouched.
+If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), just drop in a `skills/lens-<name>/SKILL.md` folder. The orchestrator auto-discovers installed `lens-*`, so no edits to README, `package.json`, or the orchestrator are needed.
 
-Full guide: [docs/adding-a-lens.md](docs/adding-a-lens.md) — the frontmatter contract, finding JSON schema, rule-catalog format, boundary discipline (don't overlap with existing lenses), plus a copy-pasteable SKILL.md skeleton.
+Full guide: [docs/adding-a-lens.md](docs/adding-a-lens.md) — frontmatter contract, finding JSON schema, rule-catalog format, boundary discipline (don't overlap with other lenses), and a copy-paste-ready SKILL.md skeleton.
 
 ## Inspiration
 
-Inspired by the Compounding Engineering pattern Toss uses internally — running multiple LLMs in parallel against a single PR.
+This project is inspired by the Compounding Engineering pattern Toss uses internally (multiple LLMs reviewing a PR in parallel).
 
 ## License
 

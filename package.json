@@ -1,7 +1,7 @@
 {
   "name": "fe-review-skills",
-  "version": "0.4.0",
-  "description": "AI-powered frontend code review CLI. One-command install for Claude Code, Codex, Gemini CLI. Six parallel review lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) you customize freely.",
+  "version": "0.5.0",
+  "description": "Code review running multiple industry-grade frontend guidelines as parallel sub-agents.",
   "type": "module",
   "bin": {
     "fe-review-skills": "bin/fe-review-skills.mjs"
