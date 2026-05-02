@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.png" width="280" alt="fe-review-skills" />
+  <img src="docs/assets/header.jpg" width="280" alt="fe-review-skills" />
 </p>
 
 <div align="center">
