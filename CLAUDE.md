@@ -4,14 +4,14 @@ Project-specific guidance for Claude Code.
 
 ## What this is
 
-`fe-review-agents` is a Claude Code plugin distributed via npm. It ships:
+`fe-review-agents` is a Claude Code plugin. The repo doubles as its own marketplace via `.claude-plugin/marketplace.json`. It ships:
 
 - Two slash commands (`commands/diff-review.md`, `commands/file-review.md`) that orchestrate a multi-reviewer review.
 - Six reviewer agents (`agents/reviewer-{perf,quality,bugs,ts,a11y,security}.md`).
 - A synthesizer agent (`agents/synthesizer.md`) that merges 6 reviewer outputs into a single prioritized markdown report.
-- A plugin manifest (`.claude-plugin/plugin.json`).
+- A plugin manifest (`.claude-plugin/plugin.json`) + a single-plugin marketplace manifest (`.claude-plugin/marketplace.json`).
 
-Distribution: `npx fe-review-agents install [--global] [--dry-run]`. Claude Code only since v0.6.0. CLI runtime is zero-dep (Node stdlib only).
+Distribution: GitHub repo as marketplace. Users install in Claude Code via `/plugin marketplace add huurray/fe-review-agents` → `/plugin install fe-review-agents@fe-review-agents`. Claude Code only since v0.6.0.
 
 ## Architecture invariants — don't break
 
@@ -36,29 +36,23 @@ Distribution: `npx fe-review-agents install [--global] [--dry-run]`. Claude Code
 ```
 .claude-plugin/
   plugin.json                   plugin manifest ({name, version, description})
+  marketplace.json              single-plugin marketplace manifest ({name, owner, plugins[].source: "./"})
 agents/
   reviewer-{perf,quality,bugs,ts,a11y,security}.md   six reviewers (frontmatter: name + description + tools)
   synthesizer.md                                     merger (frontmatter: name + description)
 commands/
   diff-review.md                git-diff orchestrator (frontmatter: description + argument-hint)
   file-review.md                single-file orchestrator
-bin/
-  fe-review-agents.mjs          CLI. Single mode: copy plugin tree to .claude/plugins/<plugin-name>/
 docs/
-  install-claude-code.md        install + usage guide
   adding-a-reviewer.md          user-facing reviewer authoring guide
   assets/                       README header + architecture image
 README.md                       한국어, primary
 README.en.md                    English; must stay in sync with README.md
-package.json                    bin entry, files array, no devDeps
 ```
 
-## CLI / build
+## Release
 
-- No build step. The CLI just copies markdown files. devDependencies removed in v0.6.0.
-- `node bin/fe-review-agents.mjs --help` / `--version` for smoke tests.
-- `node bin/fe-review-agents.mjs install --dry-run` previews install paths.
-- `npm pack` then install the resulting tarball into `/tmp/<test-dir>` to catch `files` array misses before publishing.
+No build step — everything is markdown. Cut a release by pushing to `main`. Users pull updates with `/plugin marketplace update`. If `plugin.json` sets a `version`, Claude Code uses it for change detection; otherwise it falls back to the latest commit SHA on the default branch.
 
 ## Conventions
 
@@ -103,20 +97,24 @@ User-facing version: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md). Mai
 2. Append a dispatch row in **Step 2** of both `commands/diff-review.md` and `commands/file-review.md`.
 3. Append an input section in the synthesizer prompt of both command files — under a new `## N+1. <Category>` heading.
 
-That's it. **Don't** edit `package.json` (the `agents/` and `commands/` directories are included via `files` array). **Don't** edit either README's reviewer table for user-added reviewers (the table documents the 6 starters; user reviewers don't need README entries).
+That's it. **Don't** edit either README's reviewer table for user-added reviewers (the table documents the 6 starters; user reviewers don't need README entries).
 
 If you're adding to the **shipped 6 starter set** (rare — the 6 are intentionally a stable opinionated baseline), update both READMEs' reviewer tables and the architecture diagram in lockstep.
 
 Bar for a rule: "reliably detectable from the reviewer's input (file content or diff hunks) without runtime data" AND "would a senior frontend reviewer flag this on a PR." Both yes → add. One no → skip.
 
-## Claude Code plugin discovery (load-bearing assumption)
+## Claude Code plugin discovery
 
-The CLI's install path relies on Claude Code automatically registering plugin contents — `agents/<name>.md` as `subagent_type=<plugin-name>:<name>`, and `commands/<name>.md` as the `/<plugin-name>:<name>` slash command — when a plugin tree lives at `.claude/plugins/<plugin-name>/` (project) or `~/.claude/plugins/<plugin-name>/` (with `--global`). This is an Anthropic-side implementation detail. If the path convention changes upstream, the `installClaudeCode` function in `bin/fe-review-agents.mjs` is the single point to update.
+Claude Code does **not** auto-register plugins by filesystem presence — files at `~/.claude/plugins/<name>/` alone are invisible. Plugins enter the runtime through one of two paths:
 
-For local plugin testing without going through marketplace install: `claude --plugin-dir <path>` loads the plugin from an arbitrary path. After edits to commands / agents: `/reload-plugins`.
+1. **Marketplace install** (the user path) — `/plugin marketplace add <gh-owner>/<repo>` registers the marketplace; `/plugin install <plugin-name>@<marketplace-name>` then installs a plugin from that marketplace. The marketplace name is the `name` field in `.claude-plugin/marketplace.json` (here: `fe-review-agents`); Claude Code caches the plugin under `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` and registers `agents/<name>.md` as `<plugin-name>:<name>` and `commands/<name>.md` as `/<plugin-name>:<name>`.
+2. **Local dev** — `claude --plugin-dir <path>` loads from an arbitrary path for that session. After edits: `/reload-plugins`.
+
+`marketplace.json` and `plugin.json` must agree on the plugin name (both `fe-review-agents`). If they drift, the install silently fails.
 
 ## Gotchas
 
+- **No filesystem auto-discovery.** Do not assume putting files at `~/.claude/plugins/<name>/` registers them — it doesn't. The pre-0.7 CLI made this assumption and it was wrong; fixed by switching to marketplace-based distribution.
 - **GitHub push protection blocks real-looking secret patterns** — Stripe (`sk_live_…`, `sk_test_…<24 alnum>`), AWS (`AKIA…`), JWTs, etc. — regardless of whether the value is intentionally fake. The regex matchers don't care about intent. If a fixture needs a hardcoded-secret demo, use a clearly broken placeholder like `sk_live_<YOUR_KEY>` (angle brackets defeat the alnum regex) or describe the pattern in prose. **Do not commit any string that could be mistaken for a real provider key.**
 - **Reviewers are LLM-based pattern review, not static analysis.** No SAST, no SCA, no runtime profiling, no auto-fix. Suggestions only — the user is the editor.
 - **Conservative is a feature.** Reviewers are tuned to skip uncertain patterns rather than guess. Don't loosen rules to "catch more" — false positives erode trust faster than missed issues.

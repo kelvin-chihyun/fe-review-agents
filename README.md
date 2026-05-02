@@ -25,25 +25,22 @@ Claude Code용 **멀티-리뷰어 코드 리뷰 플러그인**. git diff 또는 
 - **한 번에 동시 호출** — 6개 reviewer가 하나의 어시스턴트 메시지에서 동시에 호출됩니다.
 - **격리된 컨텍스트** — 각 reviewer는 자체 sub-agent 컨텍스트에서 리뷰합니다. 관점 간 추론 오염 없음, mode collapse 없음.
 - **두 진입점** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (단일 파일 딥다이브).
-- **간단한 설치** — 한 번의 명령(`npx fe-review-agents install`), 한 가지 런타임 의존(Claude Code).
+- **간단한 설치** — Claude Code 마켓플레이스에서 두 줄. 추가 의존 없음.
 - **언어 세팅** — `lang=ko` (기본) 또는 `lang=en`.
 
 ## 빠른 시작
 
 ### 설치
 
-```bash
-# 프로젝트 단위 (이 레포만)
-npx fe-review-agents install
+Claude Code 안에서 두 커멘드 순차 실행:
 
-# 전역 (모든 프로젝트)
-npx fe-review-agents install --global
-
-# 미리보기 (실제 쓰기 안 함)
-npx fe-review-agents install --dry-run
+```
+/plugin marketplace add huurray/fe-review-agents
+/plugin install fe-review-agents@fe-review-agents
 ```
 
-도구별 가이드: [Claude Code](docs/install-claude-code.md).
+`/plugins` 로 활성화 상태 확인. 자동완성에 슬래시 커맨드가 바로 안 뜨면 `/reload-plugins` (또는 Claude Code 세션 재시작).
+업데이트는 `/plugin marketplace update`.
 
 ### 사용
 
@@ -75,12 +72,6 @@ src/components/Header.tsx 점검해줘.
 | ------- | -------- | ------------------------------------------------------- | ------------- |
 | `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` | `diff-review` |
 | `lang`  | `ko`     | `ko`, `en`                                              | 둘 다         |
-
-각 reviewer는 단독 호출도 가능:
-
-```
-@reviewer-a11y
-```
 
 ## Reviewers
 

@@ -25,25 +25,21 @@ The default preset follows _well-established frontend guidelines_ directly. To a
 - **Single-message dispatch** — All 6 reviewers fire from one assistant message at once.
 - **Isolated context** — Each reviewer runs in its own sub-agent context. No cross-axis reasoning contamination, no mode collapse.
 - **Two entry points** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (single-file deep dive).
-- **Simple setup** — One command (`npx fe-review-agents install`), one runtime dependency (Claude Code).
+- **Simple setup** — Two lines through Claude Code's marketplace. No extra dependencies.
 - **Language option** — `lang=ko` (default) or `lang=en`.
 
 ## Quick Start
 
 ### Install
 
-```bash
-# Project-level (this repo only)
-npx fe-review-agents install
+In Claude Code:
 
-# Globally (all projects)
-npx fe-review-agents install --global
-
-# Preview without writing
-npx fe-review-agents install --dry-run
+```
+/plugin marketplace add huurray/fe-review-agents
+/plugin install fe-review-agents@fe-review-agents
 ```
 
-Per-tool guide: [Claude Code](docs/install-claude-code.md).
+Verify with `/plugins`. If slash-command autocomplete doesn't pick up the new commands, run `/reload-plugins` (or restart your Claude Code session). To pull updates: `/plugin marketplace update`.
 
 ### Use
 

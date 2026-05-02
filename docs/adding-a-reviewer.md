@@ -2,7 +2,14 @@
 
 `fe-review-agents` ships 6 starter reviewers (perf, bugs, ts, code quality, a11y, security). When you spot a perspective that's missing for your team — i18n, performance budgets, motion-reduce, dependency hygiene, anything — you can add a reviewer.
 
-Adding a reviewer is **three small edits**: drop a new agent file, register it in both slash-command files, and add an input section to the synthesizer prompt in both command files. Predictable beats convenient.
+## How this works
+
+The marketplace install lands under `~/.claude/plugins/cache/...`, which is **read-only territory** — Claude Code manages it. To add your own reviewer, you fork the repo and use your fork as your team's marketplace. There are two ways to iterate:
+
+- **Local dev** (fast loop, just for you) — `claude --plugin-dir <your-fork-clone>` loads your fork into a session. Hot-reload edits with `/reload-plugins`.
+- **Team distribution** — push your fork, your teammates `add` your fork as a marketplace and `install` from it.
+
+The content edits (agent file + register in both slash commands) are the same either way; only the distribution step differs.
 
 ## 1. Pick a question the existing 6 don't answer
 
@@ -19,18 +26,28 @@ If your idea folds cleanly into one of those, edit that reviewer's rule catalog 
 
 Examples that pass the bar: i18n / l10n correctness, motion / `prefers-reduced-motion`, dependency / supply-chain hygiene, dead-code, observability (logging / telemetry), bundle-size budgets, design-token adherence.
 
-## 2. Create the agent file
+## 2. Fork and clone
 
-Add a single markdown file to your installed plugin's `agents/` directory:
+GitHub UI: open `https://github.com/huurray/fe-review-agents` → **Fork** → fork lands at `<your-username>/fe-review-agents`.
 
-| Install scope | Path                                                          |
-| ------------- | ------------------------------------------------------------- |
-| Project       | `.claude/plugins/fe-review-agents/agents/reviewer-<name>.md`  |
-| Global        | `~/.claude/plugins/fe-review-agents/agents/reviewer-<name>.md`|
+```bash
+git clone https://github.com/<your-username>/fe-review-agents.git
+cd fe-review-agents
+```
+
+You'll edit files inside this clone. Refer to its absolute path as `<your-fork>` below.
+
+## 3. Create the agent file
+
+Add a single markdown file under `<your-fork>/agents/`:
+
+```
+<your-fork>/agents/reviewer-<name>.md
+```
 
 The `reviewer-` prefix is required — that's how the slash-command orchestrator dispatches the agent.
 
-## 3. Frontmatter contract
+## 4. Frontmatter contract
 
 Every reviewer's agent file must start with this YAML block:
 
@@ -48,7 +65,7 @@ tools: Read
 | `description` | yes      | One sentence. Drives AI auto-invocation when the user mentions the topic. **Wrap in double quotes** if it contains colons or other YAML metacharacters.|
 | `tools`       | yes      | `Read` only. Reviewers don't write, edit, or run code.                                                                                                  |
 
-## 4. Body contract — output format
+## 5. Body contract — output format
 
 Every reviewer **emits the same one-line markdown format** so the synthesizer can sort, dedupe, and present findings consistently. Copy this into your reviewer body:
 
@@ -69,7 +86,7 @@ Every reviewer **emits the same one-line markdown format** so the synthesizer ca
 
 If no issues: `### <emoji> <Category>\n- 발견된 이슈 없음` (lang=ko) or `- No issues found` (lang=en).
 
-## 5. Body contract — language branching
+## 6. Body contract — language branching
 
 Add this snippet to the "할 일" / "Tasks" section near the top:
 
@@ -77,7 +94,7 @@ Add this snippet to the "할 일" / "Tasks" section near the top:
 
 Reviewer outputs are merged by the synthesizer in whichever language the user asked for. Rule IDs (`[axis/rule-id]`) stay constant across languages — only the issue/fix prose translates.
 
-## 6. Body contract — rule catalog
+## 7. Body contract — rule catalog
 
 Below the output spec, list the rules your reviewer applies:
 
@@ -91,9 +108,9 @@ Below the output spec, list the rules your reviewer applies:
 
 Conservative is a feature: false positives erode trust faster than missed issues. If you're not sure whether a pattern is a bug, skip it.
 
-## 7. Register with both slash commands
+## 8. Register with both slash commands
 
-This is the step that makes your reviewer actually run. Edit both `commands/diff-review.md` and `commands/file-review.md`.
+This is the step that makes your reviewer actually run. Edit both `commands/diff-review.md` and `commands/file-review.md` in your fork.
 
 **(a) Append a dispatch row in Step 2.** Each command has a numbered list of `Agent` calls (1–6 currently). Add yours as #7:
 
@@ -110,9 +127,9 @@ This is the step that makes your reviewer actually run. Edit both `commands/diff
 <reviewer-<your-name> 출력 전문>
 ```
 
-If you skip step 7, your agent file exists but no slash command dispatches it. Direct invocation (`@reviewer-<your-name>`) still works.
+If you skip step 8, your agent file exists but no slash command dispatches it. Direct invocation (`@reviewer-<your-name>`) still works.
 
-## 8. Boundary discipline
+## 9. Boundary discipline
 
 The 6 starter reviewers overlap minimally because each one stays inside its own question. Some easy traps and how the existing reviewers handle them:
 
@@ -122,12 +139,41 @@ The 6 starter reviewers overlap minimally because each one stays inside its own 
 
 Pattern: when in doubt, _which question is the user really asking when they hit this issue?_ That's the reviewer that should fire.
 
-## 9. Verify
+## 10. Test locally (no push needed)
 
-After steps 2–7, reload plugins (`/reload-plugins` in Claude Code) and test:
+Before pushing your fork, iterate using `--plugin-dir`:
+
+```bash
+claude --plugin-dir <your-fork>
+```
+
+In that session your fork is loaded as a plugin. After edits to `agents/` or `commands/`: `/reload-plugins` (no restart needed).
+
+Verify:
 
 - `@reviewer-<your-name>` — direct invocation should work standalone. If not, check the agent file's frontmatter (most common issue: unquoted colon in `description`).
 - `/fe-review-agents:diff-review` on a diff that should trigger your rules — your reviewer's `### <emoji> <Category>` section should appear in the synthesizer's output.
+
+This is the right loop for development. Push only when you're done.
+
+## 11. (Optional) Distribute to your team
+
+Once the reviewer works, push your fork:
+
+```bash
+git add agents/reviewer-<your-name>.md commands/diff-review.md commands/file-review.md
+git commit -m "feat: add reviewer-<your-name>"
+git push origin main
+```
+
+Teammates install from your fork:
+
+```
+/plugin marketplace add <your-username>/fe-review-agents
+/plugin install fe-review-agents@fe-review-agents
+```
+
+If they had the upstream `huurray/fe-review-agents` marketplace registered, they'll need to swap. Either remove the old one (`/plugin marketplace remove fe-review-agents`) and add yours, or keep both registered — Claude Code uses the marketplace name to disambiguate, so install from the one you want explicitly.
 
 ## Skeleton
 
@@ -175,4 +221,4 @@ tools: Read
 - 라인 번호 정확히. 짧게.
 ````
 
-That's the file. Then do step 7 (register in both slash commands) and your reviewer ships alongside the defaults.
+That's the file. Then do step 8 (register in both slash commands), test with `--plugin-dir` (step 10), and optionally push to your fork to share (step 11).
