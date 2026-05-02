@@ -6,7 +6,7 @@ import { parse as parseToml } from "smol-toml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const SKILLS_DIR = path.join(ROOT, "skills");
+const AGENTS_DIR = path.join(ROOT, "agents");
 const CODEX_DIR = path.join(ROOT, "codex");
 
 const tomlBasicString = (s) =>
@@ -19,39 +19,45 @@ const tomlBasicString = (s) =>
     .replace(/\t/g, "\\t") +
   '"';
 
+// Use TOML multiline LITERAL strings ('''...''') so backslashes and any
+// other content pass through unchanged — no escape sequences to worry about.
+// The only thing that can't appear in a literal string is the literal terminator
+// itself (three single quotes), which is exceedingly rare in markdown bodies.
 const tomlMultilineLiteral = (s) => {
-  const safe = String(s).replace(/"""/g, '""\\"');
-  const sep = safe.startsWith("\n") ? "" : "\n";
-  return `"""${sep}${safe}\n"""`;
+  const text = String(s);
+  if (text.includes("'''")) {
+    throw new Error(
+      "Source body contains ''' which would terminate a TOML literal string. " +
+        "Rewrite the source to avoid that sequence.",
+    );
+  }
+  const sep = text.startsWith("\n") ? "" : "\n";
+  return `'''${sep}${text}\n'''`;
 };
 
-// Walk skills/ for lens-* subdirectories that contain a SKILL.md.
-// Orchestrator (skills/diff-review/) is intentionally skipped — Codex doesn't
-// have a skill-discovery system, so users invoke lenses via natural language.
-function findLensSkillDirs() {
-  if (!fs.existsSync(SKILLS_DIR) || !fs.statSync(SKILLS_DIR).isDirectory()) {
+// Walk agents/ for lens-*.md files. The orchestrator agent (agents/orchestrator.md)
+// is built separately below if it exists — for tools that don't have a slash-command
+// orchestrator skill (Codex/Gemini), it provides an @orchestrator entry point.
+function findLensAgentFiles() {
+  if (!fs.existsSync(AGENTS_DIR) || !fs.statSync(AGENTS_DIR).isDirectory()) {
     return [];
   }
   return fs
-    .readdirSync(SKILLS_DIR)
-    .filter((entry) => entry.startsWith("lens-"))
-    .filter((entry) => {
-      const abs = path.join(SKILLS_DIR, entry);
-      if (!fs.statSync(abs).isDirectory()) return false;
-      return fs.existsSync(path.join(abs, "SKILL.md"));
-    })
+    .readdirSync(AGENTS_DIR)
+    .filter((entry) => entry.startsWith("lens-") && entry.endsWith(".md"))
+    .filter((entry) => fs.statSync(path.join(AGENTS_DIR, entry)).isFile())
     .sort()
-    .map((name) => ({
-      name,
-      skillPath: path.join(SKILLS_DIR, name, "SKILL.md"),
+    .map((entry) => ({
+      name: entry.replace(/\.md$/, ""),
+      agentPath: path.join(AGENTS_DIR, entry),
     }));
 }
 
-const lensDirs = findLensSkillDirs();
+const lensFiles = findLensAgentFiles();
 
-if (lensDirs.length === 0) {
+if (lensFiles.length === 0) {
   console.error(
-    `✗ No lens-* directories found in ${path.relative(ROOT, SKILLS_DIR)}.`,
+    `✗ No lens-*.md files found in ${path.relative(ROOT, AGENTS_DIR)}.`,
   );
   process.exit(1);
 }
@@ -61,13 +67,13 @@ fs.mkdirSync(CODEX_DIR, { recursive: true });
 let built = 0;
 const failures = [];
 
-for (const { name, skillPath } of lensDirs) {
-  const md = fs.readFileSync(skillPath, "utf-8");
+function buildOne({ name, agentPath }) {
+  const md = fs.readFileSync(agentPath, "utf-8");
   const { data, content } = matter(md);
 
   if (!data.name || !data.description) {
     failures.push(`${name}: missing required frontmatter (name, description)`);
-    continue;
+    return;
   }
 
   const toml =
@@ -97,11 +103,18 @@ for (const { name, skillPath } of lensDirs) {
     }
   } catch (err) {
     failures.push(`${name}: TOML smoke test failed — ${err.message}`);
-    continue;
+    return;
   }
 
   built += 1;
   console.log(`✓ ${path.relative(ROOT, outPath)}`);
+}
+
+for (const entry of lensFiles) buildOne(entry);
+
+const orchestratorPath = path.join(AGENTS_DIR, "review-orchestrator.md");
+if (fs.existsSync(orchestratorPath)) {
+  buildOne({ name: "review-orchestrator", agentPath: orchestratorPath });
 }
 
 if (failures.length > 0) {

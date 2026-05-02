@@ -1,8 +1,6 @@
 ---
 name: lens-bugs
-input-mode: diff
 description: Reviews frontend code diffs for correctness bugs across React/Next.js (rules-of-hooks, stale closures, effect deps, JSX traps), JavaScript/TypeScript (floating promises, empty catches, loose equality, JSON.parse without try), and HTML/CSS (button missing type, 100vh on mobile). Returns structured JSON findings. Use when reviewing diffs for frontend correctness bugs, or when invoked as a sub-agent by the diff-review orchestrator.
-user-invocable: true
 ---
 
 # lens-bugs

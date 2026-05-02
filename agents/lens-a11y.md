@@ -1,8 +1,6 @@
 ---
 name: lens-a11y
-input-mode: diff
 description: Reviews frontend code diffs for accessibility issues based on WCAG 2.2 and ARIA Authoring Practices. Detects missing alt text, unnamed icon buttons, broken keyboard navigation, ARIA misuse, focus management bugs, and inaccessible form patterns. Returns structured JSON findings. Use when reviewing diffs for accessibility (a11y), or when invoked as a sub-agent by the diff-review orchestrator.
-user-invocable: true
 ---
 
 # lens-a11y

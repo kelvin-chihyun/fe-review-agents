@@ -1,0 +1,5 @@
+{
+  "name": "fe-review-skills",
+  "version": "0.5.1",
+  "description": "Code review running multiple industry-grade frontend guidelines as parallel sub-agents."
+}

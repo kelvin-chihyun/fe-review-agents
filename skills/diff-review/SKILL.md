@@ -1,76 +1,65 @@
 ---
 name: diff-review
-description: Orchestrates parallel frontend code review across the six default lenses (React performance, bugs, code quality, accessibility, security, TypeScript rigor) plus any additional `lens-*` skills the user has installed. Use when the user asks to review a diff, review a PR, run code review on staged or unstaged changes, audit frontend changes, or perform a multi-perspective code review on git output. Spawns sub-agents for each installed lens in parallel, then deduplicates and prioritizes findings.
-user-invocable: true
+description: Triages a git diff to pick relevant review lenses (from React performance, bugs, code quality, accessibility, security, TypeScript rigor, plus any additional `lens-*` agents the user has registered in the roster below), then runs each enabled lens in an isolated sub-agent context and merges findings into one prioritized report. Use when the user asks to review a diff, review a PR, run code review on staged or unstaged changes, audit frontend changes, or perform a multi-perspective code review on git output.
+argument-hint: "[scope] [lang=en|ko] [severity_min=critical|high|medium|low] [lenses=...] [triage=on|off]"
 ---
 
 # diff-review
 
-Run every installed frontend review lens in parallel against a git diff and merge the results into one prioritized report.
+Triage a git diff to identify which review categories are relevant, then run each enabled lens in an isolated sub-agent and merge findings.
+
+## How it works (and what it doesn't do)
+
+The value here is **isolated per-lens context** — each enabled lens reviews the diff in its own sub-agent with a fresh context window, so findings stay independent (no reasoning contamination across categories).
+
+Sub-agents run **sequentially** because Claude Code's runtime serializes Task dispatch even when issued in a single assistant message — a runtime design (GitHub Issue #3013, closed-not-planned), not a prompting failure. We don't fight this: instead, **triage** picks 2–3 relevant lenses out of 6 so a typical run takes ~1–1.5 min instead of ~3 min. The "fast and parallel" promise from other multi-agent kits is largely aspirational; we trade it for honest, focused, isolated review.
 
 ## When to use
 
 Trigger on user requests like "review my diff", "review staged changes", "review this PR", "audit the changes on this branch", or "run code review on what I've changed". Targets frontend repos (React, Next.js, Vue, Svelte, plain HTML/CSS).
 
-If the user asks for a single perspective (e.g. "just check for a11y"), defer to whichever installed `lens-*` skill matches the request instead of running this orchestrator.
+If the user asks for a single perspective (e.g. "just check for a11y"), defer to the matching lens agent directly (`@lens-a11y`) instead of running this orchestrator.
 
 ## Inputs
 
-The user can pass options inline. Parse them out of the request:
+| Option         | Default       | Values                                                                                                          |
+| -------------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| `scope`        | `auto`        | `auto`, `staged`, `unstaged`, `branch:<name>`, `range:<rev>..<rev>`                                             |
+| `lang`         | `en`          | `en`, `ko`                                                                                                      |
+| `lenses`       | (triaged)     | comma-list of short names. Setting this **disables triage** and forces exactly the listed lenses                |
+| `severity_min` | `low`         | `critical`, `high`, `medium`, `low`                                                                             |
+| `triage`       | `on`          | `on`, `off` (= run all roster lenses without triage)                                                            |
 
-| Option         | Default       | Values                                                                                                           |
-| -------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `scope`        | `staged`      | `staged`, `unstaged`, `branch:<name>`, `range:<rev>..<rev>`                                                      |
-| `lang`         | `en`          | `en`, `ko`                                                                                                       |
-| `lenses`       | all installed | comma-list of short names; each token matches an installed `lens-<name>` skill (see Step 0 for resolution rules) |
-| `severity_min` | `high`        | `critical`, `high`, `medium`, `low`                                                                              |
+`auto` (default with no scope arg) prefers `staged`; if there are no staged frontend changes, it falls back to `unstaged`. An explicit `staged` or `unstaged` is respected and never falls back.
 
-Example: "review my diff with lang=ko severity_min=medium lenses=perf,bugs,ts,a11y"
+Example: `review my diff with lang=ko severity_min=medium triage=off`
+
+## Lens roster
+
+The roster is the **dispatch list**. Each entry maps a lens `subagent_type` to its `input-mode`. **To add a new lens** (`lens-i18n`, `lens-tests`, etc.): create `agents/lens-<name>.md` and append a row to this table plus a triage rule in Step 1.5 below. See [docs/adding-a-lens.md](../../docs/adding-a-lens.md).
+
+| `subagent_type`     | `input-mode`     |
+| ------------------- | ---------------- |
+| `lens-a11y`         | `diff`           |
+| `lens-bugs`         | `diff`           |
+| `lens-code-quality` | `changed-files`  |
+| `lens-react-perf`   | `diff`           |
+| `lens-security`     | `diff`           |
+| `lens-ts`           | `diff`           |
 
 ## Workflow
 
-### Step 0 — Discover installed lenses
-
-List the lens skills available to dispatch. Use the `Glob` tool with these patterns (in order; first non-empty wins):
-
-1. `.claude/skills/lens-*/SKILL.md` — project-level installs
-2. `~/.claude/skills/lens-*/SKILL.md` — global installs (expand `~` to the user's home dir)
-
-For each match, read the file's YAML frontmatter and extract `name` and `input-mode`. Skip entries with missing `name` or unparseable frontmatter and note the skip in the report footer (`⚠️ Skipped <path>: missing/invalid frontmatter`).
-
-The result is a list of `{ name, input-mode }` records — call it the **installed lens set**.
-
-If the installed lens set is empty:
-
-> No lens skills are installed. Run `npx fe-review-skills install <claude-code|gemini-cli|codex-cli>` from your project root to install the default 6 lenses (or `--global` to install for all projects).
-
-…and stop.
-
-#### Resolving the `lenses` option
-
-If the user passed `lenses=<comma-list>`, resolve each short-name token against the installed lens set:
-
-- Exact match (`lens-bugs` matches the lens whose `name` is `lens-bugs`) → use it.
-- Suffix match — token without `lens-` prefix matches a lens whose `name` ends with that suffix:
-  - `perf` → `lens-react-perf`
-  - `quality` → `lens-code-quality`
-  - `bugs` → `lens-bugs`, `ts` → `lens-ts`, `a11y` → `lens-a11y`, `security` → `lens-security`
-  - For user-added lenses, the token equals the suffix after `lens-` (e.g. `i18n` matches `lens-i18n`).
-- Ambiguous token (matches >1 installed lens) → ask the user to disambiguate by giving the full `lens-<name>` form, then stop.
-- Unmatched token → tell the user the lens isn't installed and list installed lenses, then stop.
-
-If `lenses` is unset, use the entire installed lens set.
-
 ### Step 1 — Collect the diff and (when needed) file contents
 
-**1a. Get the diff** for the scope:
+**1a. Get the diff** for the resolved scope:
 
+- `auto` → run `staged` first; if its filtered diff (after 1b) is empty, switch to `unstaged`. Note the resolved mode in the report header (e.g. `**Scope:** auto → unstaged`). If both produce empty filtered diffs, stop with the no-changes message.
 - `staged` → `git diff --cached --unified=3`
 - `unstaged` → `git diff --unified=3`
 - `branch:<name>` → `git diff <name>...HEAD --unified=3`
 - `range:<a>..<b>` → `git diff <a>..<b> --unified=3`
 
-Capture the diff output **directly into your context** by running the bash command and reading the result. Do NOT redirect to a temp file (`> /tmp/...`) — Step 2 dispatches must inline the diff text into each sub-agent prompt, and a `/tmp` round-trip just forces every sub-agent to do an extra Read. Same rule for the file contents collected in 1c.
+Capture the diff output **directly into your context** by running the bash command. Do NOT redirect to a temp file — Step 2 inlines the diff text into each sub-agent prompt, and a `/tmp` round-trip just forces every sub-agent to do an extra Read.
 
 **1b. Filter** to frontend files only:
 
@@ -80,63 +69,66 @@ Capture the diff output **directly into your context** by running the bash comma
 
 Skip generated files (`*.d.ts`, `dist/**`, `build/**`, `.next/**`, `node_modules/**`).
 
-If the filtered diff is empty, tell the user there are no frontend changes in scope and stop.
+If the filtered diff is empty: when `scope=auto` and the current attempt was `staged`, switch to `unstaged` and redo 1a/1b once. Otherwise stop with the no-changes message.
 
 If the filtered diff exceeds 2,000 lines, ask the user to narrow the scope before proceeding.
 
-**1c. Collect file contents** — only required if at least one enabled lens declares `input-mode: changed-files` in its SKILL.md frontmatter. Skip this step otherwise.
+**1c. Collect file contents** — only required if at least one **enabled** lens (per Step 1.5 / 2a) has `input-mode: changed-files` (today: only `lens-code-quality`). Skip otherwise. Defer this step until after Step 1.5 so you don't read files for a lens that triage rules out.
 
-Get the list of changed file paths (same scope, with `--name-only`):
+When needed: get the changed-file list with `--name-only` (matching the scope command), apply the same frontend-file filter and generated-file skip as 1b, then for each remaining file read its **post-change** content (`Read` for `staged`/`unstaged`; `git show HEAD:<path>` for `branch:`; `git show <b>:<path>` for `range:`). Skip files **deleted** in this diff.
 
-- `staged` → `git diff --cached --name-only`
-- `unstaged` → `git diff --name-only`
-- `branch:<name>` → `git diff <name>...HEAD --name-only`
-- `range:<a>..<b>` → `git diff <a>..<b> --name-only`
+**Size guards** affecting Step 2 strategy:
 
-Apply the same frontend-file filter and generated-file skip as 1b.
+- Single file > 1,000 lines → exclude from the changed-files bundle. `lens-code-quality` falls back to diff-only for that file. Note in the report footer.
+- Total file content ≥ 100KB → switch to **per-file mode** in Step 2 (one Task per file × per changed-files lens).
 
-For each remaining file, read its **post-change** content:
+### Step 1.5 — Triage (skip if `lenses=` is set or `triage=off`)
 
-- `staged` or `unstaged` → use the `Read` tool on the working tree path
-- `branch:<name>` → `git show HEAD:<path>`
-- `range:<a>..<b>` → `git show <b>:<path>`
+Decide which roster lenses are worth running on this diff. Apply these heuristics; mark a lens **enabled** if at least one of its triggers fires.
 
-Skip files **deleted** in this diff (no post-change content exists).
+| Lens                | Enable when…                                                                                                                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lens-bugs`         | Any logic change. Skip only for pure styling/CSS-only diffs or pure rename/move diffs                                                                                                                                                                       |
+| `lens-a11y`         | JSX/HTML with a11y-relevant elements or attributes: `<img>`, `<button>`, `<input>`, `<label>`, `<a>`, `<dialog>`, `<video>`, `aria-*`, `role=`, `tabIndex=`, `onClick`, `onKeyDown`, focus styles, `aria-hidden`, contentEditable                            |
+| `lens-react-perf`   | React/Next.js patterns: `useEffect`, `useMemo`, `useCallback`, `useState`, `fetch`/`axios` in client code, RSC server-only files, `.map(...)` returning JSX, `addEventListener`, dynamic `import()`, barrel imports from large libs                          |
+| `lens-code-quality` | Structural change: new/changed exported function signatures or hook signatures; prop chains spanning 3+ component layers; 4+ files changed; queryKey/cache-key changes; new abstraction extracted into a shared module                                       |
+| `lens-security`     | Risk patterns: `dangerouslySetInnerHTML`, `innerHTML`/`outerHTML` assignment, `eval`, `new Function`, `document.write`, `href={...}` from variables, `postMessage`, `target="_blank"`, token-like names in `localStorage`/`sessionStorage`, `process.env.*` outside public prefix, hardcoded long alphanumeric strings, `credentials: 'include'`, `<iframe>`, `<script src=>`, `Math.random()` for IDs/tokens |
+| `lens-ts`           | TypeScript files (`.ts`/`.tsx`) with `: any`, `as ` casts, `!` non-null assertion, `// @ts-ignore`, `// @ts-expect-error`, `enum`, exported declarations, generic type parameters                                                                            |
 
-**Size guards** (these affect Step 2 strategy):
+**Be inclusive — when in doubt, enable.** Triage exists to skip *clearly* irrelevant lenses (e.g. don't run `lens-react-perf` on a TypeScript-only utility module change), not to be conservative. False negatives in triage erode trust; false positives just cost a sub-agent run.
 
-- If a single file exceeds 1,000 lines, exclude it from the changed-files bundle. Lenses with `input-mode: changed-files` will fall back to diff-only for that file. Note this in the report footer.
-- If the total content of all included files exceeds 100KB, switch to **per-file mode** in Step 2.
+The result is your `enabled` set. Compute the **triaged-out** count = `roster size - enabled size` for the report header.
 
-### Step 2 — Fan out to lenses (parallel)
+### Step 2 — Dispatch each enabled lens
 
-For each enabled lens, read its `input-mode` from its SKILL.md frontmatter. Default to `diff` if not specified. Different lenses may receive different inputs in the same review run — that's intentional (see "Why per-lens input" in the README).
+**2a. Resolve `lenses=`** if the user passed it. Each token matches the roster:
 
-**Dispatch prompt discipline.** Use the templates below verbatim, filling `<full diff content>`, `<file content>`, etc. with the actual text from your context. Three rules — all of them load-bearing:
+- Exact match (`lens-bugs`) → use it.
+- Suffix match: `perf` → `lens-react-perf`, `quality` → `lens-code-quality`, `bugs` → `lens-bugs`, `ts` → `lens-ts`, `a11y` → `lens-a11y`, `security` → `lens-security`
+- Ambiguous → ask the user for the full `lens-<name>` form, then stop.
+- Unmatched → tell the user the lens isn't in the roster and list the roster, then stop.
 
-1. **Inline content, never reference paths.** Place the actual diff bytes under the ` ```diff ` fence; place actual file contents under each `=== <path> ===` block. Do NOT save the diff to `/tmp/diff-review-diff.patch` and tell the sub-agent to "Read it with the Read tool." Do NOT list absolute file paths and ask the sub-agent to Read them. Inlining costs the same tokens but skips a per-sub-agent tool round-trip and keeps every dispatch consistent (mid-run inconsistency — half inlined, half referenced — is a known failure mode).
-2. **No SKILL.md path references.** The Skill tool auto-loads the lens's SKILL.md content when the sub-agent invokes `Use the <lens-name> skill`; pointing to the file forces a redundant Read tool call.
-3. **No restated finding-schema fields.** The lens's SKILL.md already documents the schema; restating it bloats the prompt and risks divergence.
+If `lenses=` is set, that resolved set **replaces** the triage result.
 
-#### Diff-mode lenses (`input-mode: diff`)
+**2b. Dispatch.** For each enabled lens, issue one `Task` (Agent) tool_use with `subagent_type` = the lens name and the inlined prompt template below. Submitting them as separate calls or as multiple blocks in one message both result in serial execution due to runtime design — don't worry about it, just dispatch them all. The skill's value is in isolation, not concurrency.
 
-Spawn a sub-agent (Task tool) with this exact instruction:
+For the changed-files lens in per-file mode, issue one Task per (file × lens) pair.
 
-> Use the `<lens-name>` skill — invoking it loads its rule catalog and finding schema, so do not Read SKILL.md. Review the diff below and return ONLY a JSON array of findings. Do not include any prose, markdown, or explanation outside the JSON. If there are no issues, return `[]`.
+**Inline content, never reference paths.** Place the actual diff text under the ` ```diff ` fence and any file contents under each `=== <path> ===` block. Don't save the diff to `/tmp/...` and tell the sub-agent to Read it.
+
+#### Diff-mode template (`input-mode: diff`)
+
+> Review the diff below and return ONLY a JSON array of findings using your rule catalog and finding schema. No prose, no markdown outside the JSON. Return `[]` if no issues.
 >
 > ```diff
-> <full diff content>
+> <full filtered diff>
 > ```
 
-#### Changed-files-mode lenses (`input-mode: changed-files`)
+#### Changed-files single-call template (total < 100KB)
 
-Pick the strategy based on the size guards from Step 1c.
-
-**Single-call strategy** — when total file content < 100KB. Spawn one sub-agent with the diff plus all file contents:
-
-> Use the `<lens-name>` skill — invoking it loads its rule catalog and finding schema, so do not Read SKILL.md. The following files were modified. The diff shows what changed; the full file contents are provided so you can analyze structural properties (cohesion, coupling, full function context).
+> The following files were modified. The diff shows what changed; the full file contents are provided so you can analyze structural properties (cohesion, coupling, full function context).
 >
-> CRITICAL: Only emit findings for code that appears in the diff hunks. Do NOT flag pre-existing code that wasn't part of this change.
+> CRITICAL: Only emit findings for code that appears in the diff hunks. Do NOT flag pre-existing untouched code.
 >
 > Return ONLY a JSON array of findings. Return `[]` if no issues.
 >
@@ -162,11 +154,11 @@ Pick the strategy based on the size guards from Step 1c.
 >
 > ...
 
-**Per-file strategy** — when total file content ≥ 100KB. For each changed file in scope, spawn a separate sub-agent:
+#### Changed-files per-file template (total ≥ 100KB; one Task per file)
 
-> Use the `<lens-name>` skill — invoking it loads its rule catalog and finding schema, so do not Read SKILL.md. The following file was modified. The diff hunks for this file are below; the full file content is provided for structural analysis.
+> The following file was modified. The diff hunks for this file are below; the full file content is provided for structural analysis.
 >
-> CRITICAL: Only emit findings for code that appears in the diff hunks. Do NOT flag pre-existing untouched code. Cross-file rules (e.g., `coupling/circular-domain`, `predictability/same-name-divergent-behavior`) may not fire reliably in this mode — skip rather than guess.
+> CRITICAL: Only emit findings for code that appears in the diff hunks. Cross-file rules (e.g. `coupling/circular-domain`, `predictability/same-name-divergent-behavior`) may not fire reliably in this mode — skip rather than guess.
 >
 > Return ONLY a JSON array of findings. Return `[]` if no issues.
 >
@@ -181,12 +173,6 @@ Pick the strategy based on the size guards from Step 1c.
 > ```
 > <full file content>
 > ```
-
-#### Parallelism (load-bearing)
-
-**Issue ALL Agent tool_use blocks in a single assistant message.** This is the only thing that makes them run concurrently. If you dispatch lens A, observe its result, then dispatch lens B in a follow-up message, the runtime executes them sequentially regardless of any "parallel" intent — and the entire architecture (no reasoning contamination, isolated context budgets, faster wall time) collapses.
-
-Concretely: when you reach the dispatch step, your next assistant message must contain N Agent tool_use blocks where N = (diff-mode lenses) + (changed-files single-call lenses) + (per-file mode: files × changed-files lenses). Do NOT dispatch one, await its result, then dispatch the next. Do NOT split dispatches across multiple assistant messages "to be safe" or "to verify" — the merge step in Step 3 is your verification.
 
 If a sub-agent returns malformed JSON, treat it as `[]` and note the failure in the report footer.
 
@@ -207,15 +193,15 @@ Each finding has shape:
 }
 ```
 
-**Dedupe key:** `file` + overlapping `line_start..line_end` (overlap = ranges intersect). Findings with the same key from different lenses get merged into one issue with a `perspectives[]` array preserving each lens's title, rationale, and suggestion. The merged severity is the maximum across perspectives.
+**Dedupe key:** `file` + overlapping `line_start..line_end` (overlap = ranges intersect). Findings sharing the key from different lenses merge into one issue with a `perspectives[]` array preserving each lens's title, rationale, and suggestion. Merged severity = max across perspectives.
 
 **Filter:** drop anything below `severity_min`.
 
-**Sort:** by severity desc → file path asc → line_start asc.
+**Sort:** severity desc → file path asc → line_start asc.
 
 ### Step 4 — Render
 
-Use the report template (English or Korean per `lang`).
+Use the report template (English or Korean per `lang`). Include triage info in the header.
 
 ## Report template (en)
 
@@ -223,6 +209,7 @@ Use the report template (English or Korean per `lang`).
 # Code Review
 
 > **<scope>** · <N> files · <total> issues · 🔴 <C> · 🟠 <H> · 🟡 <M> · ⚪ <L>
+> Lenses: <enabled list>  · <K> triaged out
 
 ---
 
@@ -253,7 +240,8 @@ Use the report template (English or Korean per `lang`).
 - Drop the `· <K> perspectives` suffix when an issue has only one perspective.
 - Multiple issues within the same severity render under the same `## <severity>` heading sequentially, with no separator between them.
 - Severity icon legend: `🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low`.
-- If `<total>` is 0, emit only the H1 plus one line: `No issues found.`
+- The `Lenses:` line in the header lists enabled lens short names (without `lens-` prefix). If `K` (triaged out) is 0, omit the `· <K> triaged out` suffix. If user passed `lenses=` or `triage=off`, replace the line with `Lenses: <enabled list>` (no triage count).
+- If `<total>` is 0, emit only the H1 + scope/lens header lines + one line: `No issues found.`
 - If any sub-agent failed to return parseable JSON, append at the very end after a `---`: `> ⚠️ Lens \`<name>\` failed to return parseable findings and was skipped.`
 
 ## Report template (ko)
@@ -262,6 +250,7 @@ Use the report template (English or Korean per `lang`).
 # 코드 리뷰
 
 > **<scope>** · <N> 파일 · <total> 이슈 · 🔴 <C> · 🟠 <H> · 🟡 <M> · ⚪ <L>
+> 렌즈: <enabled list> · <K>개 triaged out
 
 ---
 
@@ -292,12 +281,13 @@ Use the report template (English or Korean per `lang`).
 - 관점이 1개뿐인 이슈에서는 `· <K> 관점` 부분 생략.
 - 같은 severity 내 여러 이슈는 같은 `## <severity>` 헤딩 아래 연속으로 렌더 (이슈 간 구분선 없음).
 - severity 아이콘 범례: `🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low`.
-- `<total>` 이 0이면 H1만 출력하고 한 줄: `이슈를 찾지 못했습니다.`
+- `렌즈:` 줄은 활성화된 lens 짧은 이름 나열. `K`(triaged out)가 0이면 `· <K>개 triaged out` 부분 생략. 사용자가 `lenses=` 또는 `triage=off` 명시한 경우는 `렌즈: <list>`만 (triage 카운트 없음).
+- `<total>` 이 0이면 H1 + scope/렌즈 헤더 + 한 줄: `이슈를 찾지 못했습니다.`
 - sub-agent가 파싱 불가능한 응답을 리턴한 경우, 맨 끝 `---` 뒤에 추가: `> ⚠️ \`<name>\` lens가 결과를 반환하지 못해 건너뛰었습니다.`
 
 ## Important
 
-- Do NOT fall back to running lenses sequentially in your own context. The point of this skill is parallel sub-agents.
-- Do NOT add findings of your own — your job is orchestration and merging only.
+- Do NOT add findings of your own — your job is triage, orchestration, and merging only.
+- Triage is **inclusive by default** — when in doubt, enable. The cost of an extra sub-agent run is much smaller than the cost of missing an issue category.
 - Keep `title` short (≤8 words). Long explanations go in `rationale`.
 - If the same lens reports two findings for overlapping line ranges with different categories, keep both — they're different issues that happen to share location.

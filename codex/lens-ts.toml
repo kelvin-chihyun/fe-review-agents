@@ -2,7 +2,7 @@ name = "lens-ts"
 description = "Reviews frontend code diffs for TypeScript type-safety erosion based on the Google TypeScript Style Guide and Effective TypeScript by Dan Vanderkam. Detects `any`, casual `as` casts, `!` non-null assertions, `// @ts-ignore`, weak types, and mutable exports — focusing on patterns where the type system is being worked around rather than worked with. Returns structured JSON findings. Use when reviewing diffs for TypeScript type safety, or when invoked as a sub-agent by the diff-review orchestrator."
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
-developer_instructions = """
+developer_instructions = '''
 # lens-ts
 
 TypeScript type-safety lens. Adapted from the [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html) and _Effective TypeScript_ (Dan Vanderkam), narrowed to **pattern + context** combinations a static linter cannot decide. Context-free syntax rules belong in ESLint; this lens flags the cases where the same syntax is right in one context and wrong in another.
@@ -131,4 +131,4 @@ Every `category` MUST start with `ts/`.
 - If the codebase has a top-level `tsconfig.json` setting visible in context that disables strict mode entirely, downgrade all severities by one level. (Rare — usually invisible from a diff.)
 - The `category` field MUST be one of the rule ids above. Don't invent new ones.
 - If two rules apply to the same line, emit two findings — the merger handles dedup.
-"""
+'''

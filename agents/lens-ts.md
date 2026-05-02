@@ -1,8 +1,6 @@
 ---
 name: lens-ts
-input-mode: diff
 description: Reviews frontend code diffs for TypeScript type-safety erosion based on the Google TypeScript Style Guide and Effective TypeScript by Dan Vanderkam. Detects `any`, casual `as` casts, `!` non-null assertions, `// @ts-ignore`, weak types, and mutable exports — focusing on patterns where the type system is being worked around rather than worked with. Returns structured JSON findings. Use when reviewing diffs for TypeScript type safety, or when invoked as a sub-agent by the diff-review orchestrator.
-user-invocable: true
 ---
 
 # lens-ts

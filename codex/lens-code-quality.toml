@@ -2,7 +2,7 @@ name = "lens-code-quality"
 description = "Reviews frontend code changes for maintainability based on Toss Frontend Fundamentals — readability (가독성), predictability (예측 가능성), cohesion (응집도), and coupling (결합도). Detects hidden side effects, prop drilling, leaky abstractions, and code that is hard to change. Returns structured JSON findings. Use when reviewing diffs for code quality, maintainability, or \"easy-to-change code\", or when invoked as a sub-agent by the diff-review orchestrator."
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
-developer_instructions = """
+developer_instructions = '''
 # lens-code-quality
 
 Maintainability lens based on [Toss Frontend Fundamentals](https://github.com/toss/frontend-fundamentals).
@@ -82,4 +82,4 @@ For large PRs, the orchestrator may switch to **per-file mode**, where this lens
 - If a pattern looks "wrong" but you don't have a matching rule above, do NOT flag it. Stick to the catalog.
 - For Korean-context developers, the principle names are intentionally aligned with FF terminology so the report rationale will read familiarly.
 - Don't flag working code just because it could be "cleaner". The rule must clearly fire on the diff.
-"""
+'''

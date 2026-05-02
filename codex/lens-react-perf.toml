@@ -2,7 +2,7 @@ name = "lens-react-perf"
 description = "Reviews React and Next.js code diffs for runtime performance issues including request waterfalls, RSC serialization bloat, bundle size, missing memoization, and rendering anti-patterns. Based on Vercel React Best Practices. Returns structured JSON findings. Use when reviewing a diff for React or Next.js performance, or when invoked as a sub-agent by the diff-review orchestrator."
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
-developer_instructions = """
+developer_instructions = '''
 # lens-react-perf
 
 Performance review lens for React and Next.js diffs. Adapted from [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices), focused on rules that are reliably detectable from a diff alone.
@@ -92,4 +92,4 @@ Schema per finding:
 - Do NOT flag general "consider memoizing" advice — only flag concrete violations of the rules above.
 - The `category` field MUST be one of the rule ids above. Don't invent new ones.
 - If two rules apply to the same line, emit two findings — the merger handles dedup.
-"""
+'''

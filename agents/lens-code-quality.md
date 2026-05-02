@@ -1,8 +1,6 @@
 ---
 name: lens-code-quality
-input-mode: changed-files
 description: Reviews frontend code changes for maintainability based on Toss Frontend Fundamentals — readability (가독성), predictability (예측 가능성), cohesion (응집도), and coupling (결합도). Detects hidden side effects, prop drilling, leaky abstractions, and code that is hard to change. Returns structured JSON findings. Use when reviewing diffs for code quality, maintainability, or "easy-to-change code", or when invoked as a sub-agent by the diff-review orchestrator.
-user-invocable: true
 ---
 
 # lens-code-quality

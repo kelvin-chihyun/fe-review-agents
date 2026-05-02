@@ -1,8 +1,6 @@
 ---
 name: lens-security
-input-mode: diff
 description: "Reviews frontend code diffs for security issues including XSS vectors (dangerouslySetInnerHTML, innerHTML, javascript: URLs), secret and PII leakage (env vars in client code, tokens in localStorage, hardcoded keys), unsafe link and iframe patterns, and dangerous JS APIs (eval, new Function). Returns structured JSON findings. Use when reviewing diffs for frontend security, or when invoked as a sub-agent by the diff-review orchestrator."
-user-invocable: true
 ---
 
 # lens-security

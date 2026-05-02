@@ -2,7 +2,7 @@ name = "lens-a11y"
 description = "Reviews frontend code diffs for accessibility issues based on WCAG 2.2 and ARIA Authoring Practices. Detects missing alt text, unnamed icon buttons, broken keyboard navigation, ARIA misuse, focus management bugs, and inaccessible form patterns. Returns structured JSON findings. Use when reviewing diffs for accessibility (a11y), or when invoked as a sub-agent by the diff-review orchestrator."
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
-developer_instructions = """
+developer_instructions = '''
 # lens-a11y
 
 Accessibility review lens. Based on WCAG 2.2 success criteria and the W3C ARIA Authoring Practices Guide, narrowed to issues that are detectable from a diff alone (without runtime DOM or screen-reader testing).
@@ -84,4 +84,4 @@ Return ONLY a JSON array of findings — no prose. Same schema as `lens-react-pe
 - If the codebase uses Headless UI, Radix UI, React Aria, or similar accessible primitives, assume they handle ARIA and focus correctly UNLESS the diff visibly disables it (`aria-hidden`, removed focus styles, replaced root element).
 - `category` field MUST be one of the rule ids above.
 - For images, if you can't tell whether it's decorative or informative from the diff, flag at **high** with rationale "alt missing — verify whether image is decorative".
-"""
+'''

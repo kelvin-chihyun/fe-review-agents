@@ -11,19 +11,23 @@ const pkg = JSON.parse(
   fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'),
 );
 const VERSION = pkg.version;
+const PLUGIN_NAME = 'fe-review-skills';
 
 // Tool layouts.
-//   claude-code: copy each skills/<name>/SKILL.md → .claude/skills/<name>/SKILL.md
-//                (orchestrator + every lens; each becomes its own /<name> slash command).
-//   gemini-cli:  copy each skills/lens-*/SKILL.md → .gemini/agents/lens-<name>.md
-//                (lenses only, flattened; orchestrator skipped — invoke via natural language).
-//   codex-cli:   copy each codex/lens-*.toml → .codex/agents/lens-*.toml
-//                (pre-built TOML lenses; orchestrator skipped — invoke via natural language).
+//   claude-code: copy plugin tree (.claude-plugin/, agents/, skills/diff-review/)
+//                → .claude/plugins/<plugin-name>/  (project-level by default)
+//                or ~/.claude/plugins/<plugin-name>/  with --global
+//                The orchestrator skill is registered as /<plugin-name>:diff-review.
+//                Lenses are auto-registered as subagent_type=lens-<name>.
+//   gemini-cli:  copy each agents/lens-*.md and agents/review-orchestrator.md
+//                → .gemini/agents/  (or ~/.gemini/agents/ with --global)
+//   codex-cli:   copy each codex/lens-*.toml and codex/review-orchestrator.toml
+//                → .codex/agents/  (or ~/.codex/agents/ with --global)
 const TOOLS = {
   'claude-code': {
     name: 'Claude Code',
     dir: '.claude',
-    mode: 'claude-skills',
+    mode: 'claude-plugin',
   },
   'gemini-cli': {
     name: 'Gemini CLI',
@@ -39,7 +43,7 @@ const TOOLS = {
 
 function help() {
   process.stdout.write(`fe-review-skills v${VERSION}
-Parallel frontend code review across multiple lenses, each in its own context.
+Multi-lens frontend code review with isolated per-lens context.
 
 Usage:
   npx fe-review-skills install <tool> [--global] [--dry-run]
@@ -47,9 +51,9 @@ Usage:
   npx fe-review-skills --version
 
 Tools:
-  claude-code   Install orchestrator + lenses as skills (.claude/skills/<name>/)
-  gemini-cli    Install lenses as agents (.gemini/agents/)
-  codex-cli     Install lenses as TOML agents (.codex/agents/)
+  claude-code   Install plugin (.claude/plugins/${PLUGIN_NAME}/)
+  gemini-cli    Install lens + orchestrator agents (.gemini/agents/)
+  codex-cli     Install lens + orchestrator TOML agents (.codex/agents/)
 
 Options:
   --global       Install under ~/<tool-dir> instead of ./<tool-dir>
@@ -63,11 +67,14 @@ Examples:
   npx fe-review-skills install claude-code --global
   npx fe-review-skills install gemini-cli --dry-run
 
-After install, the 6 starter lenses live in your tool's directory. Add your own
-by dropping a new lens-<name> folder in — see docs/adding-a-lens.md.
-The orchestrator discovers whatever's installed, so the lens set is yours to shape.
+After install:
+  - Claude Code:  /${PLUGIN_NAME}:diff-review
+  - Codex CLI:    @review-orchestrator (or natural language: "review my staged diff")
+  - Gemini CLI:   @review-orchestrator (or natural language: "review my staged diff")
 
-Manual install (no Node required): https://github.com/huurray/fe-review-skills/tree/main/docs
+Customize: drop a new lens-<name> into your tool's agents directory and (in Claude Code)
+register a triage rule + roster row in skills/diff-review/SKILL.md.
+See: https://github.com/huurray/fe-review-skills/blob/main/docs/adding-a-lens.md
 `);
 }
 
@@ -109,25 +116,6 @@ function copyFileWithLog(srcAbs, dstAbs, isDryRun, results) {
   results.push({ path: dstAbs });
 }
 
-// List subdirectories of `srcDir` that contain a SKILL.md.
-// Returns array of { name, skillPath } sorted by name.
-function listSkillDirs(srcDir, { lensOnly = false } = {}) {
-  if (!fs.existsSync(srcDir)) return [];
-  return fs
-    .readdirSync(srcDir)
-    .filter((entry) => {
-      const abs = path.join(srcDir, entry);
-      if (!fs.statSync(abs).isDirectory()) return false;
-      if (lensOnly && !entry.startsWith('lens-')) return false;
-      return fs.existsSync(path.join(abs, 'SKILL.md'));
-    })
-    .sort()
-    .map((name) => ({
-      name,
-      skillPath: path.join(srcDir, name, 'SKILL.md'),
-    }));
-}
-
 // List flat files in `srcDir` matching `predicate(name)`. Returns sorted absolute paths.
 function listFiles(srcDir, predicate) {
   if (!fs.existsSync(srcDir)) return [];
@@ -141,30 +129,66 @@ function listFiles(srcDir, predicate) {
     .map((name) => ({ name, abs: path.join(srcDir, name) }));
 }
 
-function installClaudeCode(baseDir, isDryRun, results) {
-  const skillsSrc = path.join(PACKAGE_ROOT, 'skills');
-  const dirs = listSkillDirs(skillsSrc);
-  if (dirs.length === 0) {
-    process.stderr.write(`✗ No skill directories found in package skills/\n`);
-    process.exit(1);
-  }
-  for (const { name, skillPath } of dirs) {
-    const dstAbs = path.join(baseDir, 'skills', name, 'SKILL.md');
-    copyFileWithLog(skillPath, dstAbs, isDryRun, results);
+// Copy a directory subtree from src → dst, preserving structure.
+function copyTree(srcRoot, dstRoot, isDryRun, results) {
+  if (!fs.existsSync(srcRoot)) return;
+  const stack = [{ src: srcRoot, dst: dstRoot }];
+  while (stack.length > 0) {
+    const { src, dst } = stack.pop();
+    const stat = fs.statSync(src);
+    if (stat.isDirectory()) {
+      const entries = fs.readdirSync(src).sort();
+      for (const entry of entries) {
+        stack.push({
+          src: path.join(src, entry),
+          dst: path.join(dst, entry),
+        });
+      }
+    } else if (stat.isFile()) {
+      copyFileWithLog(src, dst, isDryRun, results);
+    }
   }
 }
 
-function installGeminiAgents(baseDir, isDryRun, results) {
-  const skillsSrc = path.join(PACKAGE_ROOT, 'skills');
-  const dirs = listSkillDirs(skillsSrc, { lensOnly: true });
-  if (dirs.length === 0) {
-    process.stderr.write(`✗ No lens-* directories found in package skills/\n`);
+function installClaudeCode(baseDir, isDryRun, results) {
+  // Plugin tree: .claude-plugin/, agents/, skills/diff-review/
+  const pluginDst = path.join(baseDir, 'plugins', PLUGIN_NAME);
+
+  const manifestSrc = path.join(PACKAGE_ROOT, '.claude-plugin');
+  const agentsSrc = path.join(PACKAGE_ROOT, 'agents');
+  const skillSrc = path.join(PACKAGE_ROOT, 'skills', 'diff-review');
+
+  if (!fs.existsSync(manifestSrc)) {
+    process.stderr.write(`✗ Missing .claude-plugin/ in package — invalid distribution.\n`);
     process.exit(1);
   }
-  for (const { name, skillPath } of dirs) {
-    // Flatten: skills/lens-bugs/SKILL.md → .gemini/agents/lens-bugs.md
-    const dstAbs = path.join(baseDir, 'agents', `${name}.md`);
-    copyFileWithLog(skillPath, dstAbs, isDryRun, results);
+  if (!fs.existsSync(agentsSrc)) {
+    process.stderr.write(`✗ Missing agents/ in package — invalid distribution.\n`);
+    process.exit(1);
+  }
+  if (!fs.existsSync(skillSrc)) {
+    process.stderr.write(`✗ Missing skills/diff-review/ in package — invalid distribution.\n`);
+    process.exit(1);
+  }
+
+  copyTree(manifestSrc, path.join(pluginDst, '.claude-plugin'), isDryRun, results);
+  copyTree(agentsSrc, path.join(pluginDst, 'agents'), isDryRun, results);
+  copyTree(skillSrc, path.join(pluginDst, 'skills', 'diff-review'), isDryRun, results);
+}
+
+function installGeminiAgents(baseDir, isDryRun, results) {
+  const agentsSrc = path.join(PACKAGE_ROOT, 'agents');
+  const files = listFiles(
+    agentsSrc,
+    (name) => name.endsWith('.md') && (name.startsWith('lens-') || name === 'review-orchestrator.md'),
+  );
+  if (files.length === 0) {
+    process.stderr.write(`✗ No agent files found in package agents/\n`);
+    process.exit(1);
+  }
+  for (const { name, abs } of files) {
+    const dstAbs = path.join(baseDir, 'agents', name);
+    copyFileWithLog(abs, dstAbs, isDryRun, results);
   }
 }
 
@@ -172,12 +196,12 @@ function installCodexAgents(baseDir, isDryRun, results) {
   const codexSrc = path.join(PACKAGE_ROOT, 'codex');
   const files = listFiles(
     codexSrc,
-    (name) => name.startsWith('lens-') && name.endsWith('.toml'),
+    (name) =>
+      name.endsWith('.toml') &&
+      (name.startsWith('lens-') || name === 'review-orchestrator.toml'),
   );
   if (files.length === 0) {
-    process.stderr.write(
-      `✗ No lens-*.toml files found in package codex/\n`,
-    );
+    process.stderr.write(`✗ No agent TOML files found in package codex/\n`);
     process.stderr.write(
       `  This usually means the package was published without running the build.\n`,
     );
@@ -209,13 +233,13 @@ function install(toolName, isGlobal, isDryRun) {
   const scope = isGlobal ? 'global' : 'project-level';
   const tag = isDryRun ? ' [dry-run]' : '';
   process.stdout.write(
-    `\nInstalling fe-review-skills v${VERSION} for ${tool.name} (${scope})${tag}\n`,
+    `\nInstalling ${PLUGIN_NAME} v${VERSION} for ${tool.name} (${scope})${tag}\n`,
   );
   process.stdout.write(`  target: ${displayPath(baseDir)}\n\n`);
 
   const results = [];
 
-  if (tool.mode === 'claude-skills') {
+  if (tool.mode === 'claude-plugin') {
     installClaudeCode(baseDir, isDryRun, results);
   } else if (tool.mode === 'gemini-agents') {
     installGeminiAgents(baseDir, isDryRun, results);
@@ -243,25 +267,19 @@ function install(toolName, isGlobal, isDryRun) {
 
   if (toolName === 'claude-code') {
     process.stdout.write(`Next: in ${tool.name}, type:\n`);
-    process.stdout.write(`  /diff-review\n`);
+    process.stdout.write(`  /${PLUGIN_NAME}:diff-review\n`);
     process.stdout.write(
       `Or ask in natural language: "Review my staged changes."\n`,
     );
     process.stdout.write(
-      `Single lens shortcut: /lens-a11y, /lens-react-perf, etc.\n`,
+      `Single lens shortcut: invoke @lens-bugs / @lens-a11y / etc. directly.\n`,
     );
   } else {
+    process.stdout.write(`Next: in ${tool.name}:\n`);
+    process.stdout.write(`  @review-orchestrator   (orchestrates triage + dispatch)\n`);
+    process.stdout.write(`  @lens-bugs / @lens-a11y / ...   (single-lens reviews)\n`);
     process.stdout.write(
-      `Next: in ${tool.name}, ask in natural language:\n`,
-    );
-    process.stdout.write(
-      `  "Review my changes with every lens in parallel."\n`,
-    );
-    process.stdout.write(
-      `Note: ${tool.name} doesn't have skill discovery, so the orchestrator wasn't installed.\n`,
-    );
-    process.stdout.write(
-      `      Claude Code is the primary target for full orchestration. See docs/install-${toolName.replace('-cli', '-cli')}.md for details.\n`,
+      `Or ask in natural language: "Review my staged changes."\n`,
     );
   }
 
@@ -269,7 +287,7 @@ function install(toolName, isGlobal, isDryRun) {
     `\nThe 6 starter lenses are an opinionated set — edit any of them, replace one,\n`,
   );
   process.stdout.write(
-    `or add your own by dropping a new lens-<name> folder in.\n`,
+    `or add your own by dropping a new lens-<name>.md into your tool's agents directory.\n`,
   );
   process.stdout.write(
     `Customization guide: https://github.com/huurray/fe-review-skills/blob/main/docs/adding-a-lens.md\n`,

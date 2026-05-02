@@ -1,6 +1,8 @@
 # Adding a lens
 
-`fe-review-skills` ships 6 starter lenses (perf, bugs, ts, code quality, a11y, security). When you spot a perspective that's missing for your team — i18n, performance budgets, motion-reduce, dependency hygiene, anything — you add a lens by **dropping a folder in**. No edits to the orchestrator, no edits to `package.json`, no edits to either README. The orchestrator's Step 0 discovers your new lens at next call.
+`fe-review-skills` ships 6 starter lenses (perf, bugs, ts, code quality, a11y, security). When you spot a perspective that's missing for your team — i18n, performance budgets, motion-reduce, dependency hygiene, anything — you can add a lens.
+
+Adding a lens is **three small edits**: drop a new agent file, register it in the orchestrator's roster, and add a triage rule. The previous version of this guide promised "drop a folder in and you're done"; that became unreliable so we switched to an explicit roster. Predictable beats convenient.
 
 ## 1. Pick a question the existing 6 don't answer
 
@@ -17,41 +19,36 @@ If your idea folds cleanly into one of those, edit that lens's rule catalog inst
 
 Examples that pass the bar: i18n / l10n correctness, motion / `prefers-reduced-motion`, dependency / supply-chain hygiene, dead-code, observability (logging / telemetry), bundle-size budgets, design-token adherence.
 
-## 2. Create the directory
+## 2. Create the agent file
 
-For a project-local lens (only this repo):
+Add a single markdown file to your installed plugin's `agents/` directory:
 
-```
-skills/lens-<name>/SKILL.md
-```
+| Install scope | Path                                                          |
+| ------------- | ------------------------------------------------------------- |
+| Project       | `.claude/plugins/fe-review-skills/agents/lens-<name>.md`      |
+| Global        | `~/.claude/plugins/fe-review-skills/agents/lens-<name>.md`    |
 
-For a personal global lens (every project on your machine):
+The `lens-` prefix is required — that's how the orchestrator's roster picks up the agent.
 
-```
-~/.claude/skills/lens-<name>/SKILL.md
-```
-
-The `lens-` prefix is required — that's how the orchestrator's Step 0 finds it.
+For Codex CLI / Gemini CLI users, the equivalent path is `.codex/agents/lens-<name>.toml` / `.gemini/agents/lens-<name>.md`.
 
 ## 3. Frontmatter contract
 
-Every lens's `SKILL.md` must start with this YAML block:
+Every lens's agent file must start with this YAML block:
 
 ```yaml
 ---
 name: lens-<your-name>
-input-mode: diff # or: changed-files
-user-invocable: true
 description: "One sentence on what this lens reviews. Include trigger keywords the model should match against. Quote the whole string to be safe with colons."
 ---
 ```
 
-| Key              | Required | Notes                                                                                                                                                                                                              |
-| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`           | yes      | Must match the directory name (`lens-<your-name>`).                                                                                                                                                                |
-| `input-mode`     | yes      | `diff` for line-level rules (cheaper). `changed-files` for structural rules that need full file context (cohesion, coupling). 5 of the 6 starter lenses use `diff`; only `lens-code-quality` uses `changed-files`. |
-| `user-invocable` | yes      | `true`. Lets the orchestrator dispatch the skill, and lets users invoke `/lens-<your-name>` directly in Claude Code.                                                                                               |
-| `description`    | yes      | One sentence. Drives AI-dispatch trigger matching. **Wrap in double quotes** if it contains colons or other YAML metacharacters.                                                                                   |
+| Key           | Required | Notes                                                                                                                                                  |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`        | yes      | Must match the filename (`lens-<your-name>`, no extension). Becomes the `subagent_type` the orchestrator dispatches.                                  |
+| `description` | yes      | One sentence. Drives AI auto-invocation when the user mentions the topic. **Wrap in double quotes** if it contains colons or other YAML metacharacters. |
+
+That's all the frontmatter fields. No `input-mode` (encoded in the orchestrator's roster table). No `user-invocable` (not a recognized Claude Code field).
 
 ## 4. Body contract — output schema
 
@@ -104,45 +101,66 @@ Below the schema, list the rules your lens applies. Existing lenses use this sha
 
 The "Skip when" clause matters. Conservative is a feature: false positives erode trust faster than missed issues. If you're not sure whether a pattern is a bug, _skip_.
 
+## 5b. Register with the orchestrator
+
+This is the step that's new compared to the previous version. The orchestrator uses a static roster — you tell it your lens exists.
+
+In your installed plugin's `skills/diff-review/SKILL.md` (or `agents/review-orchestrator.md` for Codex/Gemini), make two edits:
+
+**(a) Append a row to the Lens roster table:**
+
+```markdown
+| `subagent_type`     | `input-mode`     |
+| ------------------- | ---------------- |
+| ... existing rows ...
+| `lens-<your-name>`  | `diff`           |  ← add this
+```
+
+`input-mode` is `diff` for line-level rules, `changed-files` for structural rules that need full file context. Default to `diff` unless your rules truly need full files.
+
+**(b) Append a row to the Step 1.5 Triage table:**
+
+```markdown
+| Lens               | Enable when…                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| ... existing rows ...
+| `lens-<your-name>` | <patterns or file-path globs that signal your lens is relevant to a diff>               |  ← add this
+```
+
+The triage rule decides when your lens runs. Be **inclusive** — list every clear signal that this lens *might* be relevant. False negatives in triage erode trust; false positives just cost a sub-agent run.
+
+If you skip step 5b, your agent file exists but the orchestrator never dispatches it. Direct invocation (`@lens-<your-name>`) still works.
+
 ## 6. Boundary discipline
 
 The 6 starter lenses overlap minimally because each one stays inside its own question. Some easy traps and how the existing lenses handle them:
 
-- **`lens-bugs` vs `lens-ts`** — A `!` non-null assertion on something that can actually be null is `bugs/ts-unsafe-assertion`. A `!` used to silence a type checker on something that's _not_ null at runtime is `ts/non-null-assertion`. Same syntax, different question; both lenses can fire and the orchestrator merges them with both perspectives preserved.
-- **`lens-react-perf` vs `lens-code-quality`** — Heavy memoization on values that don't change is `perf/over-memoization`. Drilling state through 5 components is `quality/coupling/prop-drill`. Don't try to make one lens cover both.
-- **`lens-a11y` vs `lens-security`** — `dangerouslySetInnerHTML` from user input is `security/xss`. From trusted CMS content with screen-reader implications is `a11y/inaccessible-html-injection`. Different question, possibly both fire.
+- **`lens-bugs` vs `lens-ts`** — A `!` non-null assertion on something that can actually be null is `bugs/non-null-assert-on-external`. A `!` used to silence a type checker on something that's _not_ null at runtime is `ts/non-null-assertion`. Same syntax, different question; both lenses can fire and the orchestrator merges them with both perspectives preserved.
+- **`lens-react-perf` vs `lens-code-quality`** — Heavy memoization on values that don't change is `perf/rendering-memo-empty-deps`. Drilling state through 5 components is `cohesion/pass-through-prop`. Don't try to make one lens cover both.
+- **`lens-a11y` vs `lens-security`** — `dangerouslySetInnerHTML` from user input is `security/dangerously-set-inner-html`. From trusted CMS content with screen-reader implications is an `a11y/...` finding. Different question, possibly both fire.
 
 Pattern: when in doubt, _which question is the user really asking when they hit this issue?_ That's the lens that should fire.
 
 ## 7. Trigger
 
-Once your lens directory is in place:
+Once steps 2–5b are done, the next `/fe-review-skills:diff-review` (Claude Code) or `@review-orchestrator` (Codex/Gemini) call will dispatch your lens when triage fires its rule. Verify it loaded:
 
-- **Project-local install** (`./.claude/skills/lens-<name>/SKILL.md`): the orchestrator's Step 0 finds it on the next `/diff-review` call. Project installs win over global ones.
-- **Global install** (`~/.claude/skills/lens-<name>/SKILL.md`): same, but applies to every project on your machine (until a project install shadows it).
+- In Claude Code: `@lens-<your-name>` should be a valid agent invocation. Run it standalone to confirm registration.
+- After running `/fe-review-skills:diff-review`, the report header lists enabled lenses. Your new lens should appear there when triage rules fire.
 
-The orchestrator's frontmatter description names the 6 default lenses literally so AI dispatch keeps matching them strongly. Your custom lens won't appear in that description, but Step 0's filesystem scan will pick it up regardless. Verify it loaded:
+If your lens doesn't appear in the report:
 
-```
-/lens-<your-name>
-```
-
-…in Claude Code; it should activate standalone. Then `/diff-review` should list your lens in the "installed lens set" log line at the top of its run.
-
-If your lens doesn't appear in the report after `/diff-review`:
-
-- Check it shows up in the report footer's "Skipped" list — that means the frontmatter is malformed (most often: an unquoted colon in `description`).
-- Run `/lens-<your-name>` directly to confirm Claude Code itself is registering the skill.
+- Run `@lens-<your-name>` directly to confirm the agent file is well-formed (most common issue: unquoted colon in `description`).
+- Check the orchestrator's Step 1.5 — is your triage rule firing on the kind of diff you tested with?
+- Check the orchestrator's Lens roster — did you add the row?
 
 ## Skeleton
 
-Copy this into a fresh `skills/lens-<name>/SKILL.md` to start:
+Copy this into a fresh `agents/lens-<name>.md` to start:
 
 ````markdown
 ---
 name: lens-<name>
-input-mode: diff
-user-invocable: true
 description: "One sentence on what this lens reviews. Include keywords like 'review for X', 'audit Y', so the AI dispatcher knows when to fire it."
 ---
 
@@ -152,7 +170,7 @@ One paragraph: what question this lens answers, where the rules come from, what'
 
 ## When to use
 
-- Triggered by `diff-review` as a sub-agent
+- Triggered by the orchestrator (when its triage rule for this lens fires)
 - Or directly: "review this diff for <thing>"
 
 ## Output
@@ -171,7 +189,6 @@ Return ONLY a JSON array of findings matching the shared schema:
   "suggestion": "what to do"
 }
 ```
-````
 
 Every `category` MUST start with `<name>/`. Return `[]` if no issues.
 
@@ -192,8 +209,6 @@ Every `category` MUST start with `<name>/`. Return `[]` if no issues.
 ### <name>/<rule-id-2>
 
 ...
+````
 
-```
-
-That's it. Drop it in, run `/diff-review`, watch your perspective ship alongside the defaults.
-```
+That's the file. Then do step 5b (roster + triage rule) and your lens ships alongside the defaults.

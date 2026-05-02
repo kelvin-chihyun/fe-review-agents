@@ -8,6 +8,8 @@
   },
   "files": [
     "bin",
+    ".claude-plugin",
+    "agents",
     "skills",
     "codex",
     "scripts",

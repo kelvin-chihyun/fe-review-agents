@@ -1,8 +1,6 @@
 ---
 name: lens-react-perf
-input-mode: diff
 description: Reviews React and Next.js code diffs for runtime performance issues including request waterfalls, RSC serialization bloat, bundle size, missing memoization, and rendering anti-patterns. Based on Vercel React Best Practices. Returns structured JSON findings. Use when reviewing a diff for React or Next.js performance, or when invoked as a sub-agent by the diff-review orchestrator.
-user-invocable: true
 ---
 
 # lens-react-perf

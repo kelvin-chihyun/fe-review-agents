@@ -2,7 +2,7 @@ name = "lens-bugs"
 description = "Reviews frontend code diffs for correctness bugs across React/Next.js (rules-of-hooks, stale closures, effect deps, JSX traps), JavaScript/TypeScript (floating promises, empty catches, loose equality, JSON.parse without try), and HTML/CSS (button missing type, 100vh on mobile). Returns structured JSON findings. Use when reviewing diffs for frontend correctness bugs, or when invoked as a sub-agent by the diff-review orchestrator."
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
-developer_instructions = """
+developer_instructions = '''
 # lens-bugs
 
 Frontend correctness lens. Adapted from React official docs + the `react-hooks` ESLint catalog + ESLint/TypeScript-ESLint core rules + common HTML/CSS traps, narrowed to bugs that are reliably detectable from a diff alone. The aim is to catch "this code is just wrong" — bugs perf, quality, a11y, and security lenses leave on the table.
@@ -173,4 +173,4 @@ Every `category` MUST start with `bugs/`.
 - For `bugs/floating-promise`: if the call is explicitly prefixed with `void` (`void fetch(...)`), it's intentional fire-and-forget — skip.
 - The `category` field MUST be one of the rule ids above. Don't invent new ones.
 - If two rules apply to the same line, emit two findings — the merger handles dedup.
-"""
+'''
