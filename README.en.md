@@ -15,7 +15,7 @@
 
 </div>
 
-A **multi-reviewer code-review plugin** for Claude Code. Reviews a git diff or a single file from 6 perspectives. Each **reviewer** is a single-purpose agent with its own ruleset, dispatched together with the others in one shot. A synthesizer agent merges the 6 outputs into a single report.
+A **multi-reviewer code-review plugin** for Claude Code. Reviews a git diff or a single file from 6 perspectives. Each **reviewer** is a single-purpose agent, dispatched in parallel with the other reviewers. A synthesizer agent merges the 6 outputs into a single report.
 
 The default preset follows _well-established frontend guidelines_ directly. To add your own reviewer, create an agent file and register it in both slash commands.
 
@@ -72,12 +72,6 @@ Audit src/components/Header.tsx.
 | `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` | `diff-review` |
 | `lang`  | `ko`     | `ko`, `en`                                              | both          |
 
-Each reviewer can also be invoked standalone:
-
-```
-@reviewer-a11y
-```
-
 ## Reviewers
 
 > _reviewer_ = a single-purpose agent. The 6 in the table are the default preset; you can add your own. Agent names follow the form `reviewer-<name>`.
@@ -110,7 +104,7 @@ By analogy: instead of asking one person to "review it from every angle," it's *
 
 Tokens scale roughly N× compared to a single-context pass. Two things justify that cost:
 
-- **The absolute cost stays small** — input is bounded to the diff (or a single file), not the whole codebase. It's *one PR's worth of tokens × N*, not *the entire repo × N*.
+- **The absolute cost stays small** — input is bounded to the diff (or a single file). It's *one PR's worth of tokens × N*, not *the entire repo × N*.
 - **Hard guard** — diff mode bails out if the filtered diff exceeds 2,000 lines, blocking blowups structurally.
 
 What that N× buys: multi-perspective coverage with no reasoning contamination, no mode collapse. No single-context pass can structurally produce that, no matter how the prompt is written — that's this project's bet.
