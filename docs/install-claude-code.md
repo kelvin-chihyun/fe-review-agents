@@ -68,12 +68,12 @@ review my diff with lang=ko severity_min=medium lenses=perf,bugs,a11y
 
 Available options:
 
-| Option | Default | Values |
-|---|---|---|
-| `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` |
-| `lang` | `en` | `en`, `ko` |
-| `lenses` | all installed | comma-list of short names matching installed lenses |
-| `severity_min` | `high` | `critical`, `high`, `medium`, `low` |
+| Option         | Default       | Values                                                  |
+| -------------- | ------------- | ------------------------------------------------------- |
+| `scope`        | `staged`      | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` |
+| `lang`         | `en`          | `en`, `ko`                                              |
+| `lenses`       | all installed | comma-list of short names matching installed lenses     |
+| `severity_min` | `high`        | `critical`, `high`, `medium`, `low`                     |
 
 ### Natural language
 
@@ -98,7 +98,7 @@ Just check this for accessibility issues.
 
 ## Customize
 
-The 6 starter lenses are markdown files with rule catalogs. Edit them, replace them, add a 7th, remove one you don't need. The orchestrator auto-discovers whatever lens-* skills are installed.
+The 6 starter lenses are markdown files with rule catalogs. Edit them, replace them, add a 7th, remove one you don't need. The orchestrator auto-discovers whatever lens-\* skills are installed.
 
 Full guide: [docs/adding-a-lens.md](adding-a-lens.md).
 

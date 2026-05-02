@@ -12,9 +12,10 @@ Project-specific guidance for Claude Code.
 
 **Per-lens input routing.** Each lens declares `input-mode: diff | changed-files` in its SKILL.md frontmatter. Five lenses (`bugs`, `a11y`, `security`, `react-perf`, `ts`) take diff hunks only; `lens-code-quality` takes diff + full file content for structural rules (cohesion, coupling, predictability). The orchestrator reads frontmatter and prepares per-lens contexts. **The token-cost story in both READMEs ("diff × N + α") depends on this routing — don't change it casually.**
 
-**Lens auto-discovery.** The orchestrator's Step 0 (in `skills/diff-review/SKILL.md`) globs `lens-*/SKILL.md` from the user's skills directory at dispatch time. The dispatch list is *not* hardcoded. The CLI mirrors this at install time — `bin/fe-review-skills.mjs` enumerates `skills/<name>/` subdirectories and copies each `SKILL.md` to the tool's destination. Don't reintroduce a static lens list anywhere; if a 7th lens is added, both the install and dispatch paths should pick it up without code changes.
+**Lens auto-discovery.** The orchestrator's Step 0 (in `skills/diff-review/SKILL.md`) globs `lens-*/SKILL.md` from the user's skills directory at dispatch time. The dispatch list is _not_ hardcoded. The CLI mirrors this at install time — `bin/fe-review-skills.mjs` enumerates `skills/<name>/` subdirectories and copies each `SKILL.md` to the tool's destination. Don't reintroduce a static lens list anywhere; if a 7th lens is added, both the install and dispatch paths should pick it up without code changes.
 
 **Size guards in the orchestrator workflow:**
+
 - Filtered diff > 2,000 lines → ask user to narrow scope
 - Single file > 1,000 lines → exclude from changed-files bundle (that file falls back to diff-only)
 - Total file content > 50KB → switch to per-file mode (one sub-agent per file × per changed-files lens; cross-file rules explicitly skipped)
@@ -51,12 +52,14 @@ package.json                    bin entry, files array, devDeps, scripts. NO `sk
 ## Conventions
 
 **SKILL.md frontmatter contract:**
+
 - `name` matches the directory name
 - `description` — write the trigger phrases plainly; this drives agent dispatch. **Wrap in double-quoted YAML if it contains colons or other YAML metacharacters** (e.g. `description: "...javascript: URLs..."`). The Codex build uses `gray-matter` and will fail loudly on YAML errors.
 - `user-invocable: true` on every skill (orchestrator and lenses)
 - `input-mode: diff | changed-files` on every lens (NOT on the orchestrator)
 
 **Finding JSON schema** — every lens returns an array of:
+
 ```json
 {
   "file": "...",
@@ -69,6 +72,7 @@ package.json                    bin entry, files array, devDeps, scripts. NO `sk
   "suggestion": "what to do instead"
 }
 ```
+
 Severity levels are hard-coded in the orchestrator's merge/sort logic — don't add new ones. `category` is the lens's rule id; the orchestrator does NOT validate it, but consistent ids help downstream tooling.
 
 **Orchestrator description preservation.** `skills/diff-review/SKILL.md`'s frontmatter description names the 6 default lens domains literally (`React performance, bugs, code quality, accessibility, security, TypeScript rigor`) plus an additive _"and any additional `lens-*` skills the user has installed"_ clause. **Do not over-generify.** Removing the literal domain words breaks AI dispatch on phrases like "review for accessibility" or "audit perf." The extension clause is _additive_, never _substitutive_.
@@ -101,4 +105,4 @@ The CLI's Claude Code install path relies on Claude Code automatically registeri
 - **`examples/` was deliberately removed** during a push-protection cleanup (sample.diff contained Stripe-format keys that GitHub blocked). If you re-add example fixtures, follow the rule above — no real-looking secret patterns.
 - **Lenses are LLM-based pattern review, not static analysis.** No SAST, no SCA, no runtime profiling, no auto-fix. Suggestions only — the user is the editor.
 - **Conservative is a feature.** Lenses are tuned to skip uncertain patterns rather than guess. Don't loosen rules to "catch more" — false positives erode trust faster than missed issues.
-- **Codex/Gemini parity is best-effort.** Claude Code is the primary target — its skill-discovery system maps `/diff-review` to a fully orchestrated workflow. Codex and Gemini install lenses only; users compose orchestration via natural language. If parity becomes important, verify each tool's skill mechanism *before* claiming support; do not assume `.gemini/AGENTS.md` or similar conventions.
+- **Codex/Gemini parity is best-effort.** Claude Code is the primary target — its skill-discovery system maps `/diff-review` to a fully orchestrated workflow. Codex and Gemini install lenses only; users compose orchestration via natural language. If parity becomes important, verify each tool's skill mechanism _before_ claiming support; do not assume `.gemini/AGENTS.md` or similar conventions.

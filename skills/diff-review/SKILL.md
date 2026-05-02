@@ -18,12 +18,12 @@ If the user asks for a single perspective (e.g. "just check for a11y"), defer to
 
 The user can pass options inline. Parse them out of the request:
 
-| Option         | Default      | Values                                                                                |
-| -------------- | ------------ | ------------------------------------------------------------------------------------- |
-| `scope`        | `staged`     | `staged`, `unstaged`, `branch:<name>`, `range:<rev>..<rev>`                           |
-| `lang`         | `en`         | `en`, `ko`                                                                            |
+| Option         | Default       | Values                                                                                                           |
+| -------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `scope`        | `staged`      | `staged`, `unstaged`, `branch:<name>`, `range:<rev>..<rev>`                                                      |
+| `lang`         | `en`          | `en`, `ko`                                                                                                       |
 | `lenses`       | all installed | comma-list of short names; each token matches an installed `lens-<name>` skill (see Step 0 for resolution rules) |
-| `severity_min` | `high`       | `critical`, `high`, `medium`, `low`                                                   |
+| `severity_min` | `high`        | `critical`, `high`, `medium`, `low`                                                                              |
 
 Example: "review my diff with lang=ko severity_min=medium lenses=perf,bugs,ts,a11y"
 

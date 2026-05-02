@@ -40,18 +40,18 @@ Every lens's `SKILL.md` must start with this YAML block:
 ```yaml
 ---
 name: lens-<your-name>
-input-mode: diff           # or: changed-files
+input-mode: diff # or: changed-files
 user-invocable: true
 description: "One sentence on what this lens reviews. Include trigger keywords the model should match against. Quote the whole string to be safe with colons."
 ---
 ```
 
-| Key | Required | Notes |
-|---|---|---|
-| `name` | yes | Must match the directory name (`lens-<your-name>`). |
-| `input-mode` | yes | `diff` for line-level rules (cheaper). `changed-files` for structural rules that need full file context (cohesion, coupling). 5 of the 6 starter lenses use `diff`; only `lens-code-quality` uses `changed-files`. |
-| `user-invocable` | yes | `true`. Lets the orchestrator dispatch the skill, and lets users invoke `/lens-<your-name>` directly in Claude Code. |
-| `description` | yes | One sentence. Drives AI-dispatch trigger matching. **Wrap in double quotes** if it contains colons or other YAML metacharacters. |
+| Key              | Required | Notes                                                                                                                                                                                                              |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`           | yes      | Must match the directory name (`lens-<your-name>`).                                                                                                                                                                |
+| `input-mode`     | yes      | `diff` for line-level rules (cheaper). `changed-files` for structural rules that need full file context (cohesion, coupling). 5 of the 6 starter lenses use `diff`; only `lens-code-quality` uses `changed-files`. |
+| `user-invocable` | yes      | `true`. Lets the orchestrator dispatch the skill, and lets users invoke `/lens-<your-name>` directly in Claude Code.                                                                                               |
+| `description`    | yes      | One sentence. Drives AI-dispatch trigger matching. **Wrap in double quotes** if it contains colons or other YAML metacharacters.                                                                                   |
 
 ## 4. Body contract — output schema
 
@@ -70,15 +70,15 @@ Every lens **returns the same JSON shape** so the orchestrator can dedupe and me
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `file` | yes | Path as it appears in the diff. |
-| `line_start`, `line_end` | yes | Lines in the post-change file. The orchestrator dedupes findings across lenses by `file + overlapping line range`. |
-| `severity` | yes | One of: `critical`, `high`, `medium`, `low`. **Don't add new levels** — the orchestrator's sort and `severity_min` filter rely on these four. |
-| `category` | yes | Stable rule ID. **Prefix with your lens name**, e.g. `i18n/missing-translation-key`. The orchestrator doesn't validate it, but consistent IDs make report grouping cleaner. |
-| `title` | yes | ≤8 words. Long explanations belong in `rationale`. |
-| `rationale` | yes | Why this is a problem in this codebase. |
-| `suggestion` | yes | What to change. Concrete, not abstract. |
+| Field                    | Required | Notes                                                                                                                                                                       |
+| ------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `file`                   | yes      | Path as it appears in the diff.                                                                                                                                             |
+| `line_start`, `line_end` | yes      | Lines in the post-change file. The orchestrator dedupes findings across lenses by `file + overlapping line range`.                                                          |
+| `severity`               | yes      | One of: `critical`, `high`, `medium`, `low`. **Don't add new levels** — the orchestrator's sort and `severity_min` filter rely on these four.                               |
+| `category`               | yes      | Stable rule ID. **Prefix with your lens name**, e.g. `i18n/missing-translation-key`. The orchestrator doesn't validate it, but consistent IDs make report grouping cleaner. |
+| `title`                  | yes      | ≤8 words. Long explanations belong in `rationale`.                                                                                                                          |
+| `rationale`              | yes      | Why this is a problem in this codebase.                                                                                                                                     |
+| `suggestion`             | yes      | What to change. Concrete, not abstract.                                                                                                                                     |
 
 Return ONLY a JSON array — no prose, no markdown fence, no explanation. Empty findings → `[]`.
 
@@ -138,7 +138,7 @@ If your lens doesn't appear in the report after `/diff-review`:
 
 Copy this into a fresh `skills/lens-<name>/SKILL.md` to start:
 
-```markdown
+````markdown
 ---
 name: lens-<name>
 input-mode: diff
@@ -171,6 +171,7 @@ Return ONLY a JSON array of findings matching the shared schema:
   "suggestion": "what to do"
 }
 ```
+````
 
 Every `category` MUST start with `<name>/`. Return `[]` if no issues.
 
@@ -191,6 +192,8 @@ Every `category` MUST start with `<name>/`. Return `[]` if no issues.
 ### <name>/<rule-id-2>
 
 ...
+
 ```
 
 That's it. Drop it in, run `/diff-review`, watch your perspective ship alongside the defaults.
+```
