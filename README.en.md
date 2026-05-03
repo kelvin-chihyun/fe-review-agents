@@ -102,23 +102,11 @@ By analogy: instead of asking one person to "review it from every angle," it's *
 
 ### Is the N× worth it?
 
-Tokens scale roughly N× compared to a single-context pass. Two things justify that cost:
-
-- **The absolute cost stays small** — input is bounded to the diff (or a single file). It's _one PR's worth of tokens × N_, not _the entire repo × N_.
-- **Hard guard** — diff mode bails out if the filtered diff exceeds 2,000 lines, blocking blowups structurally.
-
-What that N× buys: multi-perspective coverage with no reasoning contamination, no mode collapse. No single-context pass can structurally produce that, no matter how the prompt is written — that's this project's bet.
+Honestly, tokens scale roughly N× compared to a single-context pass. What that cost buys is **maximum review quality, higher reliability, and as few missed issues as possible** — multi-perspective coverage with no reasoning contamination and no mode collapse, something a single-context pass structurally cannot produce no matter how the prompt is written. This isn't a tool for teams optimizing for token spend; it's open source built for **teams that put absolute reliability above cost**.
 
 ### Single-message dispatch (parallel intent)
 
-The slash commands instruct the main session to issue all 6 `Agent` tool_use blocks in one message. The runtime decides whether they actually run concurrently, so we don't promise wall time. **That said, the architecture is set up to maximize concurrency within whatever the runtime allows.** The synthesizer step runs once after all 6 reviewers return.
-
-### Two modes, same fan-out
-
-- **`/fe-review-agents:diff-review`** is for PR-style review: collect the relevant diff (staged / unstaged / branch / range), filter to frontend files, fire the 6 reviewers on the diff text.
-- **`/fe-review-agents:file-review`** is for single-file deep dives: each reviewer `Read`s the file directly. Useful for a fresh-eyes pass on one component before opening a PR.
-
-Both go through the same 6 reviewers and the same synthesizer.
+The slash command tells the main session to send all 6 `Agent` calls in one assistant message. But if that message is heavy, the model splits it into two or three sends and the calls fall back to serial. So the main session writes the filtered diff to a temp file once, and each reviewer prompt only carries the file path. Each sub-agent then reads the file with `Read` from its own context. **The disk acts as a shared channel, keeping the dispatch message light.** The synthesizer runs once after all 6 reviewers return.
 
 ## Architecture
 
