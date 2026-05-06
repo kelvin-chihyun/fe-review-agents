@@ -34,7 +34,12 @@ diff에서 다음 확장자만 남기고 나머지 파일 hunk는 제거:
 
 ## 단계 1.5 — 필터된 diff를 임시 파일에 저장
 
-병렬 dispatch를 위해 필터된 diff 텍스트를 **`Write` 도구로** `/tmp/fe-review-diff.txt`에 저장합니다. 이렇게 하면 단계 2의 dispatch prompt가 작아져서 (path만 전달) 모든 Agent 호출이 하나의 어시스턴트 메시지에 한꺼번에 담겨 실제로 병렬 실행됩니다. (diff 텍스트를 prompt에 인라인하면 출력이 거대해져 모델이 dispatch를 스스로 나눠 → 직렬 실행으로 바뀝니다.)
+병렬 dispatch를 위해 필터된 diff 텍스트를 `/tmp/fe-review-diff.txt`에 저장합니다. **두 단계로**:
+
+1. **먼저 `Bash`로 `rm -f /tmp/fe-review-diff.txt` 실행.** 기존 파일이 있으면 (이전 세션 잔존물 등) 삭제, 없으면 no-op (`-f` 플래그가 에러 억제). 이 단계로 `Write` 도구의 "exists → Read first" 요건 회피 + stale 파일 권한 충돌 방지.
+2. **그 다음 `Write` 도구로** 필터된 diff 내용을 `/tmp/fe-review-diff.txt`에 저장.
+
+이렇게 하면 단계 2의 dispatch prompt가 작아져서 (path만 전달) 모든 Agent 호출이 하나의 어시스턴트 메시지에 한꺼번에 담겨 실제로 병렬 실행됩니다. (diff 텍스트를 prompt에 인라인하면 출력이 거대해져 모델이 dispatch를 스스로 나눠 → 직렬 실행으로 바뀝니다.)
 
 각 reviewer는 자기 sub-agent 컨텍스트에서 `Read`로 이 파일을 한 번씩 읽습니다 (병렬이라 wall-time에 영향 미미).
 
