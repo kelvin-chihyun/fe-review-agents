@@ -100,6 +100,8 @@ There are 2 structural reasons to split the guidelines into independent sub-agen
 
 By analogy: instead of asking one person to "review it from every angle," it's **a panel of specialist reviewers in isolated rooms reviewing the same change, gathered afterward to reconcile conflicts and overlap**.
 
+> For a side-by-side snapshot of both approaches against the same code, see [docs/comparison.en.md](docs/comparison.en.md).
+
 ### Is the N× worth it?
 
 Honestly, tokens scale roughly N× compared to a single-context pass. What that cost buys is **maximum review quality, higher reliability, and as few missed issues as possible** — multi-perspective coverage with no reasoning contamination and no mode collapse, something a single-context pass structurally cannot produce no matter how the prompt is written. This isn't a tool for teams optimizing for token spend; it's open source built for **teams that put absolute reliability above cost**.
