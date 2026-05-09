@@ -27,6 +27,7 @@ The default preset follows _well-established frontend guidelines_ directly. To a
 - **Two entry points** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (single-file deep dive).
 - **Simple setup** — Two lines through Claude Code's marketplace. No extra dependencies.
 - **Language option** — `lang=ko` (default) or `lang=en`.
+- **Severity filter** — `severity_min=LOW` (default), `MED`, `HIGH`, `CRITICAL`. Findings below the threshold are excluded.
 
 ## Quick Start
 
@@ -51,6 +52,7 @@ Diff-based review (review what changed):
 /fe-review-agents:diff-review branch:main
 /fe-review-agents:diff-review range:HEAD~3..HEAD
 /fe-review-agents:diff-review unstaged lang=en
+/fe-review-agents:diff-review staged severity_min=HIGH
 ```
 
 Single-file review (deep dive):
@@ -58,6 +60,7 @@ Single-file review (deep dive):
 ```
 /fe-review-agents:file-review src/components/Header.tsx
 /fe-review-agents:file-review src/components/Header.tsx lang=en
+/fe-review-agents:file-review src/components/Header.tsx severity_min=HIGH
 ```
 
 Or in natural language:
@@ -67,10 +70,11 @@ Review my staged changes.
 Audit src/components/Header.tsx.
 ```
 
-| Option  | Default  | Values                                                  | Applies to    |
-| ------- | -------- | ------------------------------------------------------- | ------------- |
-| `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` | `diff-review` |
-| `lang`  | `ko`     | `ko`, `en`                                              | both          |
+| Option         | Default  | Values                                                  | Applies to    |
+| -------------- | -------- | ------------------------------------------------------- | ------------- |
+| `scope`        | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` | `diff-review` |
+| `lang`         | `ko`     | `ko`, `en`                                              | both          |
+| `severity_min` | `LOW`    | `LOW`, `MED`, `HIGH`, `CRITICAL`                        | both          |
 
 ## Reviewers
 

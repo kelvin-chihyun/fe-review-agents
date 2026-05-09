@@ -1,6 +1,6 @@
 ---
-description: 여러 reviewer subagent를 한꺼번에 호출해 git diff를 리뷰하고 synthesizer로 중요도순 종합 리포트를 만듭니다. 사용법 — /fe-review-agents:diff-review [scope] [lang=ko|en]. scope=staged(기본)/unstaged/branch:<name>/range:<a>..<b>
-argument-hint: "[scope] [lang=ko|en]"
+description: 여러 reviewer subagent를 한꺼번에 호출해 git diff를 리뷰하고 synthesizer로 중요도순 종합 리포트를 만듭니다. 사용법 — /fe-review-agents:diff-review [scope] [lang=ko|en] [severity_min=LOW|MED|HIGH|CRITICAL]. scope=staged(기본)/unstaged/branch:<name>/range:<a>..<b>
+argument-hint: "[scope] [lang=ko|en] [severity_min=LOW|MED|HIGH|CRITICAL]"
 ---
 
 git diff 기반 리뷰 워크플로우. 여러 reviewer + synthesizer.
@@ -9,7 +9,12 @@ git diff 기반 리뷰 워크플로우. 여러 reviewer + synthesizer.
 
 먼저 `Bash`로 `git rev-parse --is-inside-work-tree`를 실행해 git 레포인지 확인. 아니면 "git 레포가 아닙니다" 알리고 종료.
 
-`$ARGUMENTS`에서 `lang=ko` 또는 `lang=en` 토큰을 추출 (기본 `ko`). 나머지를 scope로 해석:
+`$ARGUMENTS`에서 다음 두 옵션 토큰을 먼저 추출:
+
+- `lang=ko|en` (기본 `ko`)
+- `severity_min=LOW|MED|HIGH|CRITICAL` (기본 `LOW`. 대소문자 무시 — 내부적으로 대문자로 정규화)
+
+각 토큰의 값이 위 허용 목록에 없으면 default로 fallback하고 사용자에게 한 줄 경고를 그대로 출력 (예: ``severity_min=foo`는 무효 — `LOW`로 진행``). 두 토큰을 제거한 나머지를 scope로 해석:
 
 | scope 토큰 | 실행 명령 |
 |--------------|-----------|
@@ -73,10 +78,11 @@ DIFF 파일 경로: /tmp/fe-review-diff.txt
 
 - `subagent_type`: `synthesizer`
 - `description`: "Synthesize diff review"
-- `prompt`: 다음 형식으로 모든 reviewer 결과를 포함 (`<resolved-scope>` 자리에는 단계 0에서 해석된 scope를 적음, `<LANG>`은 단계 0에서 결정한 언어):
+- `prompt`: 다음 형식으로 모든 reviewer 결과를 포함 (`<resolved-scope>` 자리에는 단계 0에서 해석된 scope를 적음, `<LANG>`은 단계 0에서 결정한 언어, `<SEVERITY_MIN>`은 단계 0에서 결정한 최소 심각도):
   ```
   대상: git diff (scope: <resolved-scope>)
   lang=<LANG>
+  severity_min=<SEVERITY_MIN>
 
   모든 reviewer의 결과를 종합해 중요도순 리포트를 작성해주세요.
 

@@ -1,13 +1,18 @@
 ---
-description: 여러 reviewer subagent를 한꺼번에 호출해 단일 파일을 리뷰하고 synthesizer로 중요도순 종합 리포트를 만듭니다. 사용법 — /fe-review-agents:file-review <파일 경로> [lang=ko|en]
-argument-hint: "<file-path> [lang=ko|en]"
+description: 여러 reviewer subagent를 한꺼번에 호출해 단일 파일을 리뷰하고 synthesizer로 중요도순 종합 리포트를 만듭니다. 사용법 — /fe-review-agents:file-review <파일 경로> [lang=ko|en] [severity_min=LOW|MED|HIGH|CRITICAL]
+argument-hint: "<file-path> [lang=ko|en] [severity_min=LOW|MED|HIGH|CRITICAL]"
 ---
 
 단일 파일 다각도 리뷰. 여러 reviewer + synthesizer.
 
 ## 단계 0 — 인자 파싱
 
-`$ARGUMENTS`에서 `lang=ko` 또는 `lang=en` 토큰을 먼저 추출 (기본 `ko`). 나머지 토큰을 파일 경로로 사용.
+`$ARGUMENTS`에서 다음 두 옵션 토큰을 먼저 추출:
+
+- `lang=ko|en` (기본 `ko`)
+- `severity_min=LOW|MED|HIGH|CRITICAL` (기본 `LOW`. 대소문자 무시 — 내부적으로 대문자로 정규화)
+
+각 토큰의 값이 위 허용 목록에 없으면 default로 fallback하고 사용자에게 한 줄 경고를 그대로 출력 (예: ``severity_min=foo`는 무효 — `LOW`로 진행``). 두 토큰을 제거한 나머지를 파일 경로로 사용.
 
 만약 파일 경로가 비어있다면, 사용자에게 어떤 파일을 리뷰할지 먼저 물어본 뒤 진행하세요.
 
@@ -42,10 +47,11 @@ lang=<LANG>
 
 - `subagent_type`: `synthesizer`
 - `description`: "Synthesize review"
-- `prompt`: 다음 형식으로 모든 reviewer 결과를 포함 (`<LANG>`은 단계 0에서 결정한 언어):
+- `prompt`: 다음 형식으로 모든 reviewer 결과를 포함 (`<LANG>`은 단계 0에서 결정한 언어, `<SEVERITY_MIN>`은 단계 0에서 결정한 최소 심각도):
   ```
   파일 경로: <FILE_PATH>
   lang=<LANG>
+  severity_min=<SEVERITY_MIN>
 
   모든 reviewer의 결과를 종합해 중요도순 리포트를 작성해주세요.
 

@@ -27,6 +27,7 @@ Claude Code용 **멀티 코드 리뷰어 플러그인**. git diff 또는 단일 
 - **두 진입점** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (단일 파일 딥다이브).
 - **간단한 설치** — Claude Code 마켓플레이스에서 두 줄. 추가 의존 없음.
 - **언어 세팅** — `lang=ko` (기본) 또는 `lang=en`.
+- **심각도 필터** — `severity_min=LOW` (기본), `MED`, `HIGH`, `CRITICAL`. 그 이하 심각도는 리포트에서 제외.
 
 ## 빠른 시작
 
@@ -52,6 +53,7 @@ Diff 기반 리뷰 (변경분 리뷰):
 /fe-review-agents:diff-review branch:main
 /fe-review-agents:diff-review range:HEAD~3..HEAD
 /fe-review-agents:diff-review unstaged lang=en
+/fe-review-agents:diff-review staged severity_min=HIGH
 ```
 
 단일 파일 리뷰 (딥다이브):
@@ -59,6 +61,7 @@ Diff 기반 리뷰 (변경분 리뷰):
 ```
 /fe-review-agents:file-review src/components/Header.tsx
 /fe-review-agents:file-review src/components/Header.tsx lang=en
+/fe-review-agents:file-review src/components/Header.tsx severity_min=HIGH
 ```
 
 자연어로도 가능:
@@ -68,10 +71,11 @@ staged 변경 리뷰해줘.
 src/components/Header.tsx 점검해줘.
 ```
 
-| 옵션    | 기본값   | 값                                                      | 적용 대상     |
-| ------- | -------- | ------------------------------------------------------- | ------------- |
-| `scope` | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` | `diff-review` |
-| `lang`  | `ko`     | `ko`, `en`                                              | 둘 다         |
+| 옵션           | 기본값   | 값                                                      | 적용 대상     |
+| -------------- | -------- | ------------------------------------------------------- | ------------- |
+| `scope`        | `staged` | `staged`, `unstaged`, `branch:<name>`, `range:<a>..<b>` | `diff-review` |
+| `lang`         | `ko`     | `ko`, `en`                                              | 둘 다         |
+| `severity_min` | `LOW`    | `LOW`, `MED`, `HIGH`, `CRITICAL`                        | 둘 다         |
 
 ## 리뷰어
 
