@@ -1,6 +1,6 @@
 {
   "name": "fe-review-agents",
-  "description": "Multi-reviewer Claude Code plugin: 6 frontend reviewers in parallel + synthesizer.",
+  "description": "Multi-reviewer frontend code review plugin: 6 frontend reviewers in parallel + synthesizer.",
   "owner": {
     "name": "huurray"
   },
@@ -8,7 +8,7 @@
     {
       "name": "fe-review-agents",
       "source": "./",
-      "description": "6 reviewers (react-perf, quality, bugs, ts, a11y, security) + synthesizer. /diff-review, /file-review."
+      "description": "6 reviewers (react-perf, quality, bugs, ts, a11y, security) + synthesizer. Supports /fe-review-agents:diff-review and /fe-review-agents:file-review."
     }
   ]
 }

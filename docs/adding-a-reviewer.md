@@ -4,10 +4,11 @@
 
 ## How this works
 
-The marketplace install lands under `~/.claude/plugins/cache/...`, which is **read-only territory** — Claude Code manages it. To add your own reviewer, you fork the repo and use your fork as your team's marketplace. There are two ways to iterate:
+In Claude Code, the marketplace install lands under `~/.claude/plugins/cache/...`, which is **read-only territory** — Claude Code manages it. In Codex, this repo exposes a repo-scoped marketplace at `.agents/plugins/marketplace.json` and the canonical plugin root at `plugins/fe-review-agents`. Repository-root `agents/` and `commands/` are synchronized compatibility mirrors for Claude Code. To add your own reviewer, you fork the repo and iterate on that fork. There are two common ways to iterate:
 
-- **Local dev** (fast loop, just for you) — `claude --plugin-dir <your-fork-clone>` loads your fork into a session. Hot-reload edits with `/reload-plugins`.
-- **Team distribution** — push your fork, your teammates `add` your fork as a marketplace and `install` from it.
+- **Claude Code local dev** (fast loop, just for you) — `claude --plugin-dir <your-fork-clone>` loads your fork into a session. Hot-reload edits with `/reload-plugins`.
+- **Codex local dev** — register your fork repo as a marketplace source, restart Codex, then install or enable `fe-review-agents` from the Plugin Directory.
+- **Team distribution** — push your fork, then your teammates install it through the tool-specific marketplace flow they use.
 
 The content edits (agent file + register in both slash commands) are the same either way; only the distribution step differs.
 
@@ -39,13 +40,13 @@ You'll edit files inside this clone. Refer to its absolute path as `<your-fork>`
 
 ## 3. Create the agent file
 
-Add a single markdown file under `<your-fork>/agents/`:
+Add a single markdown file under the canonical plugin root:
 
 ```
-<your-fork>/agents/reviewer-<name>.md
+<your-fork>/plugins/fe-review-agents/agents/reviewer-<name>.md
 ```
 
-The `reviewer-` prefix is required — that's how the slash-command orchestrator dispatches the agent.
+The `reviewer-` prefix is required — that's how the slash-command orchestrator dispatches the agent. After editing the canonical plugin files, run `node scripts/sync-claude-surface.mjs` from `<your-fork>` so Claude's root-level mirrors stay in sync.
 
 ## 4. Frontmatter contract
 
@@ -110,7 +111,7 @@ Conservative is a feature: false positives erode trust faster than missed issues
 
 ## 8. Register with both slash commands
 
-This is the step that makes your reviewer actually run. Edit both `commands/diff-review.md` and `commands/file-review.md` in your fork.
+This is the step that makes your reviewer actually run. Edit the canonical command files under `plugins/fe-review-agents/commands/` in your fork.
 
 **(a) Append a dispatch row in Step 2.** Each command has a numbered list of `Agent` calls (1–6 currently). Add yours as #7:
 
@@ -118,7 +119,7 @@ This is the step that makes your reviewer actually run. Edit both `commands/diff
 7. `Agent` — `subagent_type: reviewer-<your-name>`, `description: "<Short> review"`, [관점]="<Korean perspective name>"
 ```
 
-(For `commands/file-review.md` the prompt template is the file-mode one; for `commands/diff-review.md` it's the diff-mode one. The template is identical for all reviewers within a command — you're just adding a new dispatch line.)
+(For `plugins/fe-review-agents/commands/file-review.md` the prompt template is the file-mode one; for `plugins/fe-review-agents/commands/diff-review.md` it's the diff-mode one. The template is identical for all reviewers within a command — you're just adding a new dispatch line.)
 
 **(b) Append an input section in the synthesizer prompt.** Each command's Step 3 (diff-review) / Step 2 (file-review) has the synthesizer prompt body with `## 1. Performance` through `## 6. Security`. Add:
 
@@ -127,7 +128,7 @@ This is the step that makes your reviewer actually run. Edit both `commands/diff
 <reviewer-<your-name> 출력 전문>
 ```
 
-If you skip step 8, your agent file exists but no slash command dispatches it. Direct invocation (`@reviewer-<your-name>`) still works.
+When the canonical edits are done, run `node scripts/sync-claude-surface.mjs` once to refresh root `agents/` and `commands/` for Claude Code. If you skip step 8, your agent file exists but no slash command dispatches it. Direct invocation (`@reviewer-<your-name>`) still works.
 
 ## 9. Boundary discipline
 
@@ -141,13 +142,22 @@ Pattern: when in doubt, _which question is the user really asking when they hit 
 
 ## 10. Test locally (no push needed)
 
-Before pushing your fork, iterate using `--plugin-dir`:
+Before pushing your fork, iterate using a local plugin load:
 
 ```bash
 claude --plugin-dir <your-fork>
 ```
 
-In that session your fork is loaded as a plugin. After edits to `agents/` or `commands/`: `/reload-plugins` (no restart needed).
+In that Claude Code session your fork is loaded as a plugin. After edits to `plugins/fe-review-agents/agents/` or `plugins/fe-review-agents/commands/`, run `node scripts/sync-claude-surface.mjs`, then `/reload-plugins` (no restart needed).
+
+For Codex, use the same fork as a marketplace root:
+
+```bash
+cd <your-fork>
+codex plugin marketplace add "$(pwd)"
+```
+
+Then restart Codex and install or enable `fe-review-agents` from the Plugin Directory entry exposed by that fork.
 
 Verify:
 
@@ -161,7 +171,13 @@ This is the right loop for development. Push only when you're done.
 Once the reviewer works, push your fork:
 
 ```bash
-git add agents/reviewer-<your-name>.md commands/diff-review.md commands/file-review.md
+git add \
+  plugins/fe-review-agents/agents/reviewer-<your-name>.md \
+  plugins/fe-review-agents/commands/diff-review.md \
+  plugins/fe-review-agents/commands/file-review.md \
+  agents/reviewer-<your-name>.md \
+  commands/diff-review.md \
+  commands/file-review.md
 git commit -m "feat: add reviewer-<your-name>"
 git push origin main
 ```

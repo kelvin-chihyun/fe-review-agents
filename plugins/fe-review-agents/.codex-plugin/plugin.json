@@ -1,0 +1,41 @@
+{
+  "name": "fe-review-agents",
+  "version": "0.7.0",
+  "description": "Skill-first frontend code review plugin with six isolated reviewers plus a synthesizer for Codex and Claude Code.",
+  "author": {
+    "name": "huurray",
+    "url": "https://github.com/huurray"
+  },
+  "homepage": "https://github.com/huurray/fe-review-agents",
+  "repository": "https://github.com/huurray/fe-review-agents",
+  "license": "MIT",
+  "keywords": [
+    "frontend",
+    "code-review",
+    "codex-plugin",
+    "claude-code",
+    "react",
+    "typescript",
+    "a11y",
+    "security"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "FE Review Agents",
+    "shortDescription": "Frontend diff and file review with six isolated reviewers",
+    "longDescription": "Codex-native skill-first frontend review plugin. Review staged changes, custom git diff scopes, or a single file with six specialist reviewers and a synthesizer while preserving Claude Code slash-command compatibility.",
+    "developerName": "huurray",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/huurray/fe-review-agents",
+    "defaultPrompt": [
+      "$fe-review-agents:fe-review-agents Review my staged frontend changes",
+      "$fe-review-agents:fe-review-diff-review branch:main severity_min=HIGH",
+      "$fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

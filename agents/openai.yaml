@@ -1,0 +1,3 @@
+interface:
+  display_name: "FE Review Agents"
+  short_description: "Skill-first frontend review plugin with diff and file workflows"

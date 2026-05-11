@@ -1,0 +1,4 @@
+interface:
+  display_name: "FE Review Agents"
+  short_description: "Route to the right frontend review workflow"
+  default_prompt: "Review my staged frontend changes with FE Review Agents."

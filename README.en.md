@@ -5,7 +5,8 @@
 <div align="center">
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code-orange.svg)](#quick-start)
+[![Works with Claude Code](https://img.shields.io/badge/works%20with-Claude%20Code-orange.svg)](#quick-start)
+[![Works with Codex](https://img.shields.io/badge/works%20with-Codex-10A37F.svg)](#quick-start)
 
 **N frontend guidelines review the same change at the same time.**
 
@@ -15,7 +16,7 @@
 
 </div>
 
-A **multi-reviewer code-review plugin** for Claude Code. Reviews a git diff or a single file from 6 perspectives. Each **reviewer** is a single-purpose agent, dispatched in parallel with the other reviewers. A synthesizer agent merges the 6 outputs into a single report.
+A **multi-reviewer code-review plugin** for Claude Code and Codex. Reviews a git diff or a single file from 6 perspectives. Each **reviewer** is a single-purpose agent, dispatched in parallel with the other reviewers. A synthesizer agent merges the 6 outputs into a single report.
 
 The default preset follows _well-established frontend guidelines_ directly. To add your own reviewer, create an agent file and register it in both slash commands.
 
@@ -24,14 +25,16 @@ The default preset follows _well-established frontend guidelines_ directly. To a
 - **Expert reviewers** — Vercel React Best Practices · Toss Frontend Fundamentals · Effective TypeScript · WCAG 2.2 · OWASP-style frontend security.
 - **Single-message dispatch** — All 6 reviewers fire from one assistant message at once.
 - **Isolated context** — Each reviewer runs in its own sub-agent context. No cross-axis reasoning contamination, no mode collapse.
-- **Two entry points** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (single-file deep dive).
-- **Simple setup** — Two lines through Claude Code's marketplace. No extra dependencies.
+- **Codex skill-first with Claude slash-command compatibility** — In Codex, use `$fe-review-agents:fe-review-agents`, `$fe-review-agents:fe-review-diff-review`, and `$fe-review-agents:fe-review-file-review` as the primary entry points. In Claude Code, the existing `/fe-review-agents:diff-review` and `/fe-review-agents:file-review` commands stay intact.
+- **Simple setup** — Claude Code marketplace or Codex local marketplace. No extra dependencies.
 - **Language option** — `lang=ko` (default) or `lang=en`.
 - **Severity filter** — `severity_min=LOW` (default), `MED`, `HIGH`, `CRITICAL`. Findings below the threshold are excluded.
 
 ## Quick Start
 
 ### Install
+
+#### Claude Code
 
 In Claude Code:
 
@@ -42,32 +45,78 @@ In Claude Code:
 
 Verify with `/plugins`. If slash-command autocomplete doesn't pick up the new commands, run `/reload-plugins` (or restart your Claude Code session). To pull updates: `/plugin marketplace update`.
 
+#### Codex
+
+Codex discovers plugins through a local marketplace file. This repository includes both a repo-scoped marketplace and a real plugin directory at `plugins/fe-review-agents/`, and the **plugin root is the Codex source of truth**.
+
+1. From the repo root, register this repo as a Codex marketplace:
+
+```bash
+codex plugin marketplace add "$(pwd)"
+```
+
+2. Restart Codex.
+
+3. In the Plugin Directory, open the `fe-review-agents` marketplace and install or enable the `fe-review-agents` plugin.
+
+4. After install, use these skills as the primary interface:
+
+```text
+$fe-review-agents:fe-review-agents Review my staged frontend changes
+$fe-review-agents:fe-review-diff-review branch:main severity_min=HIGH
+$fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en
+```
+
+If you need Claude Code compatibility, the slash commands remain available there.
+
 ### Use
 
-Diff-based review (review what changed):
+#### Default Codex usage
+
+Router skill:
+
+```
+$fe-review-agents:fe-review-agents Review my staged frontend changes
+$fe-review-agents:fe-review-agents Review src/components/Header.tsx severity_min=HIGH
+```
+
+Diff-only skill:
+
+```
+$fe-review-agents:fe-review-diff-review                              # staged (default)
+$fe-review-agents:fe-review-diff-review unstaged
+$fe-review-agents:fe-review-diff-review branch:main
+$fe-review-agents:fe-review-diff-review range:HEAD~3..HEAD
+$fe-review-agents:fe-review-diff-review unstaged lang=en
+$fe-review-agents:fe-review-diff-review staged severity_min=HIGH
+```
+
+Single-file skill:
+
+```
+$fe-review-agents:fe-review-file-review src/components/Header.tsx
+$fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en
+$fe-review-agents:fe-review-file-review src/components/Header.tsx severity_min=HIGH
+```
+
+Or in natural language:
+
+```
+Review my staged frontend changes with fe-review-agents.
+Audit src/components/Header.tsx with fe-review-agents.
+```
+
+#### Claude Code usage
+
+The existing slash commands remain available in Claude Code.
 
 ```
 /fe-review-agents:diff-review                       # staged (default)
 /fe-review-agents:diff-review unstaged
 /fe-review-agents:diff-review branch:main
 /fe-review-agents:diff-review range:HEAD~3..HEAD
-/fe-review-agents:diff-review unstaged lang=en
-/fe-review-agents:diff-review staged severity_min=HIGH
-```
-
-Single-file review (deep dive):
-
-```
 /fe-review-agents:file-review src/components/Header.tsx
-/fe-review-agents:file-review src/components/Header.tsx lang=en
 /fe-review-agents:file-review src/components/Header.tsx severity_min=HIGH
-```
-
-Or in natural language:
-
-```
-Review my staged changes.
-Audit src/components/Header.tsx.
 ```
 
 | Option         | Default  | Values                                                  | Applies to    |
@@ -108,7 +157,7 @@ By analogy: instead of asking one person to "review it from every angle," it's *
 
 ### Is the N× worth it?
 
-Honestly, tokens scale roughly N× compared to a single-context pass. What that cost buys is **maximum review quality, higher reliability, and as few missed issues as possible** — multi-perspective coverage with no reasoning contamination and no mode collapse, something a single-context pass structurally cannot produce no matter how the prompt is written. This isn't a tool for teams optimizing for token spend; it's open source built for **teams that put absolute reliability above cost**.
+Honestly, tokens scale roughly N× compared to a single-context pass. What that cost buys is **broader coverage, higher reliability, and fewer missed issues** — multi-perspective coverage with no reasoning contamination and no mode collapse, something a single-context pass has difficulty matching structurally no matter how the prompt is written. This isn't a tool for teams optimizing for token spend; it's open source built for **teams that prioritize reliability over cost**.
 
 ### Single-message dispatch (parallel intent)
 
@@ -169,7 +218,7 @@ One pass, three reviewers firing on the same line range. The reviewers don't see
 
 ## Adding a reviewer
 
-If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), drop in `agents/reviewer-<name>.md` and register it in both slash commands' dispatch lists and synthesizer prompts.
+If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), add the reviewer under the canonical plugin root `plugins/fe-review-agents/`, then run `node scripts/sync-claude-surface.mjs` to refresh the Claude compatibility mirrors.
 
 Full guide: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)
 

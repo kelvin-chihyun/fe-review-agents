@@ -1,0 +1,4 @@
+interface:
+  display_name: "FE Review Diff Review"
+  short_description: "Review a frontend git diff with six isolated reviewers"
+  default_prompt: "Review my staged frontend diff and show prioritized findings."

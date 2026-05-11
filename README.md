@@ -5,7 +5,8 @@
 <div align="center">
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Works with](https://img.shields.io/badge/works%20with-Claude%20Code-orange.svg)](#빠른-시작)
+[![Works with Claude Code](https://img.shields.io/badge/works%20with-Claude%20Code-orange.svg)](#빠른-시작)
+[![Works with Codex](https://img.shields.io/badge/works%20with-Codex-10A37F.svg)](#빠른-시작)
 
 **N개의 프론트엔드 가이드라인이 같은 변경사항을 동시에 검토합니다.**
 
@@ -15,7 +16,7 @@
 
 </div>
 
-Claude Code용 **멀티 코드 리뷰어 플러그인**. git diff 또는 단일 파일을 6가지 관점으로 리뷰합니다. 각 **리뷰어**는 단일 목적의 에이전트로, 다른 리뷰어들과 함께 병렬로 호출됩니다. synthesizer 에이전트가 6개 결과를 하나의 리포트로 합칩니다.
+Claude Code와 Codex에서 사용할 수 있는 **멀티 코드 리뷰어 플러그인**. git diff 또는 단일 파일을 6가지 관점으로 리뷰합니다. 각 **리뷰어**는 단일 목적의 에이전트로, 다른 리뷰어들과 함께 병렬로 호출됩니다. synthesizer 에이전트가 6개 결과를 하나의 리포트로 합칩니다.
 
 기본 관점은 '업계에서 검증된 프론트엔드 가이드라인'을 그대로 따릅니다. 직접 리뷰어를 추가하려면 에이전트 파일을 만들고 두 슬래시 커맨드에 등록하세요.
 
@@ -24,8 +25,8 @@ Claude Code용 **멀티 코드 리뷰어 플러그인**. git diff 또는 단일 
 - **전문 리뷰어** — Vercel React Best Practices · Toss Frontend Fundamentals · Effective TypeScript · WCAG 2.2 · OWASP 스타일 프론트엔드 보안.
 - **한 번에 동시 호출** — 6개 리뷰어가 하나의 어시스턴트 메시지에서 동시에 호출됩니다.
 - **격리된 컨텍스트** — 각 리뷰어는 자체 sub-agent 컨텍스트에서 리뷰합니다. 관점 간 추론 오염 없음, mode collapse 없음.
-- **두 진입점** — `/fe-review-agents:diff-review [scope]` (git diff), `/fe-review-agents:file-review <path>` (단일 파일 딥다이브).
-- **간단한 설치** — Claude Code 마켓플레이스에서 두 줄. 추가 의존 없음.
+- **Codex skill-first + Claude slash-command 호환** — Codex에서는 `$fe-review-agents:fe-review-agents`, `$fe-review-agents:fe-review-diff-review`, `$fe-review-agents:fe-review-file-review`를 기본 진입점으로 쓰고, Claude Code에서는 `/fe-review-agents:diff-review`, `/fe-review-agents:file-review`를 그대로 유지합니다.
+- **간단한 설치** — Claude Code 마켓플레이스 또는 Codex 로컬 마켓플레이스. 추가 의존 없음.
 - **언어 세팅** — `lang=ko` (기본) 또는 `lang=en`.
 - **심각도 필터** — `severity_min=LOW` (기본), `MED`, `HIGH`, `CRITICAL`. 그 이하 심각도는 리포트에서 제외.
 
@@ -33,7 +34,9 @@ Claude Code용 **멀티 코드 리뷰어 플러그인**. git diff 또는 단일 
 
 ### 설치
 
-Claude Code 안에서 두 커멘드 순차 실행:
+#### Claude Code
+
+Claude Code 안에서 두 커맨드 순차 실행:
 
 ```
 /plugin marketplace add huurray/fe-review-agents
@@ -43,32 +46,78 @@ Claude Code 안에서 두 커멘드 순차 실행:
 `/plugins` 로 활성화 상태 확인. 자동완성에 슬래시 커맨드가 바로 안 뜨면 `/reload-plugins` (또는 Claude Code 세션 재시작).
 업데이트는 `/plugin marketplace update`.
 
+#### Codex
+
+Codex는 로컬 마켓플레이스 파일을 통해 플러그인을 발견합니다. 이 저장소는 repo-scoped marketplace와 실제 plugin 디렉터리(`plugins/fe-review-agents/`)를 함께 포함하며, **Codex source of truth는 plugin root** 입니다.
+
+1. 저장소 루트에서 Codex에 이 repo를 마켓플레이스로 등록:
+
+```bash
+codex plugin marketplace add "$(pwd)"
+```
+
+2. Codex를 재시작합니다.
+
+3. Plugin Directory에서 `fe-review-agents` 마켓플레이스를 열고 `fe-review-agents` 플러그인을 install 또는 enable 합니다.
+
+4. 설치 후 아래 skill을 기본 인터페이스로 사용합니다.
+
+```text
+$fe-review-agents:fe-review-agents Review my staged frontend changes
+$fe-review-agents:fe-review-diff-review branch:main severity_min=HIGH
+$fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en
+```
+
+Claude Code 호환이 필요하면 기존 slash command도 계속 사용할 수 있습니다.
+
 ### 사용
 
-Diff 기반 리뷰 (변경분 리뷰):
+#### Codex 기본 사용법
+
+라우터 skill:
+
+```
+$fe-review-agents:fe-review-agents Review my staged frontend changes
+$fe-review-agents:fe-review-agents Review src/components/Header.tsx severity_min=HIGH
+```
+
+diff 전용 skill:
+
+```
+$fe-review-agents:fe-review-diff-review                              # staged (기본)
+$fe-review-agents:fe-review-diff-review unstaged
+$fe-review-agents:fe-review-diff-review branch:main
+$fe-review-agents:fe-review-diff-review range:HEAD~3..HEAD
+$fe-review-agents:fe-review-diff-review unstaged lang=en
+$fe-review-agents:fe-review-diff-review staged severity_min=HIGH
+```
+
+단일 파일 전용 skill:
+
+```
+$fe-review-agents:fe-review-file-review src/components/Header.tsx
+$fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en
+$fe-review-agents:fe-review-file-review src/components/Header.tsx severity_min=HIGH
+```
+
+자연어로도 가능:
+
+```
+Review my staged frontend changes with fe-review-agents.
+Audit src/components/Header.tsx with fe-review-agents.
+```
+
+#### Claude Code 사용법
+
+기존 slash command는 그대로 유지됩니다.
 
 ```
 /fe-review-agents:diff-review                       # staged (기본)
 /fe-review-agents:diff-review unstaged
 /fe-review-agents:diff-review branch:main
 /fe-review-agents:diff-review range:HEAD~3..HEAD
-/fe-review-agents:diff-review unstaged lang=en
-/fe-review-agents:diff-review staged severity_min=HIGH
-```
-
-단일 파일 리뷰 (딥다이브):
-
-```
 /fe-review-agents:file-review src/components/Header.tsx
-/fe-review-agents:file-review src/components/Header.tsx lang=en
 /fe-review-agents:file-review src/components/Header.tsx severity_min=HIGH
-```
-
-자연어로도 가능:
-
-```
-staged 변경 리뷰해줘.
-src/components/Header.tsx 점검해줘.
 ```
 
 | 옵션           | 기본값   | 값                                                      | 적용 대상     |
@@ -109,7 +158,7 @@ src/components/Header.tsx 점검해줘.
 
 ### 그 N배, 그만한 가치 있나?
 
-솔직히 토큰은 단일 컨텍스트 대비 대략 N배 듭니다. 대신 그 비용으로 사는 것은 **성능 극대화, 더 높은 안정성, 그리고 실수 없는 리뷰**입니다. 추론 오염과 mode collapse 없는 다관점 커버리지는 단일 컨텍스트로는 프롬프트를 어떻게 쓰든 구조적으로 얻을 수 없는 결과입니다. 이 프로젝트는 비용을 아끼려는 팀이 아니라, **돈보다 절대적 안정성을 우선하는 팀**을 위한 오픈소스입니다.
+솔직히 토큰은 단일 컨텍스트 대비 대략 N배 듭니다. 대신 그 비용으로 사는 것은 **더 넓은 커버리지, 더 높은 안정성, 그리고 누락 가능성을 줄인 리뷰**입니다. 추론 오염과 mode collapse 없는 다관점 커버리지는 단일 컨텍스트로는 프롬프트를 어떻게 쓰든 구조적으로 얻기 어려운 결과입니다. 이 프로젝트는 비용을 아끼려는 팀이 아니라, **비용보다 안정성을 우선하는 팀**을 위한 오픈소스입니다.
 
 ### 한 번에 동시 호출 (병렬 의도)
 
@@ -170,7 +219,7 @@ src/components/Header.tsx 점검해줘.
 
 ## 리뷰어 추가
 
-기본 6개로 부족한 관점이 있다면 (i18n, motion, dependency hygiene, design tokens 등), `agents/reviewer-<name>.md`를 추가하고 두 슬래시 커맨드의 dispatch 리스트와 synthesizer 프롬프트에 등록하세요.
+기본 6개로 부족한 관점이 있다면 (i18n, motion, dependency hygiene, design tokens 등), canonical plugin root인 `plugins/fe-review-agents/` 아래에 리뷰어를 추가한 뒤 `node scripts/sync-claude-surface.mjs`로 Claude 호환 mirror를 갱신하세요.
 
 전체 가이드: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)
 

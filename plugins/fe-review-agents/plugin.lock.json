@@ -1,0 +1,42 @@
+{
+  "lockVersion": 1,
+  "pluginId": "io.github.huurray.fe-review-agents",
+  "pluginVersion": "0.7.0",
+  "generatedBy": "manual",
+  "generatedAt": "2026-05-11T14:40:00Z",
+  "skills": [
+    {
+      "id": "fe-review-agents",
+      "vendoredPath": "skills/fe-review-agents",
+      "source": {
+        "type": "github",
+        "repo": "huurray/fe-review-agents",
+        "path": "plugins/fe-review-agents/skills/fe-review-agents",
+        "ref": "ce33ed82530409bd159bb65cca47f1cff6eecda7"
+      },
+      "integrity": "sha256-a940e8e7ad67021ec900dc2f6cc6167e2c46107fe124d32ac74841d7546554be"
+    },
+    {
+      "id": "fe-review-diff-review",
+      "vendoredPath": "skills/fe-review-diff-review",
+      "source": {
+        "type": "github",
+        "repo": "huurray/fe-review-agents",
+        "path": "plugins/fe-review-agents/skills/fe-review-diff-review",
+        "ref": "ce33ed82530409bd159bb65cca47f1cff6eecda7"
+      },
+      "integrity": "sha256-c18f1d98d6ea0b17ebda8cdd24157afe20569d62f8eec5398d60bf18d58ecb72"
+    },
+    {
+      "id": "fe-review-file-review",
+      "vendoredPath": "skills/fe-review-file-review",
+      "source": {
+        "type": "github",
+        "repo": "huurray/fe-review-agents",
+        "path": "plugins/fe-review-agents/skills/fe-review-file-review",
+        "ref": "ce33ed82530409bd159bb65cca47f1cff6eecda7"
+      },
+      "integrity": "sha256-f0980025b14ec6b69aaac8bcf992fd91304520c9880c7c7b3ad585ec5e622329"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
   "name": "fe-review-agents",
-  "version": "0.6.0",
-  "description": "Multi-reviewer Claude Code plugin: 6 frontend reviewers dispatched in parallel with isolated context."
+  "version": "0.7.0",
+  "description": "Multi-reviewer frontend code review plugin: 6 frontend reviewers dispatched in parallel with isolated context, with Codex skill-first packaging and Claude Code compatibility."
 }

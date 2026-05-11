@@ -1,0 +1,4 @@
+interface:
+  display_name: "FE Review File Review"
+  short_description: "Review one frontend file with six isolated reviewers"
+  default_prompt: "Review src/components/Header.tsx and show prioritized findings."
