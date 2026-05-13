@@ -4,10 +4,12 @@
 
 ## How this works
 
-In Claude Code, the marketplace install lands under `~/.claude/plugins/cache/...`, which is **read-only territory** — Claude Code manages it. In Codex, this repo exposes a repo-scoped marketplace at `.agents/plugins/marketplace.json` and the canonical plugin root at `plugins/fe-review-agents`. Repository-root `agents/` and `commands/` are synchronized compatibility mirrors for Claude Code. To add your own reviewer, you fork the repo and iterate on that fork. There are two common ways to iterate:
+This is a maintainer/dev guide. It assumes you are working from a fork or local clone, not from an already-installed plugin.
+
+In Claude Code, the marketplace install lands under `~/.claude/plugins/cache/...`, which is **read-only territory** — Claude Code manages it. In Codex, the canonical package you edit lives at `plugins/fe-review-agents/`, while `.agents/plugins/marketplace.json` is the repo marketplace used for GitHub marketplace-source installs and local packaging verification. Repository-root `agents/` and `commands/` are synchronized compatibility mirrors for Claude Code. To add your own reviewer, you fork the repo and iterate on that fork. There are two common ways to iterate:
 
 - **Claude Code local dev** (fast loop, just for you) — `claude --plugin-dir <your-fork-clone>` loads your fork into a session. Hot-reload edits with `/reload-plugins`.
-- **Codex local dev** — register your fork repo as a marketplace source, restart Codex, then install or enable `fe-review-agents` from the Plugin Directory.
+- **Codex local dev** — follow [docs/codex-dev.md](./codex-dev.md) to register your fork as a local marketplace source, restart Codex, then install or enable `fe-review-agents` from the repo-scoped entry.
 - **Team distribution** — push your fork, then your teammates install it through the tool-specific marketplace flow they use.
 
 The content edits (agent file + register in both slash commands) are the same either way; only the distribution step differs.
@@ -150,14 +152,7 @@ claude --plugin-dir <your-fork>
 
 In that Claude Code session your fork is loaded as a plugin. After edits to `plugins/fe-review-agents/agents/` or `plugins/fe-review-agents/commands/`, run `node scripts/sync-claude-surface.mjs`, then `/reload-plugins` (no restart needed).
 
-For Codex, use the same fork as a marketplace root:
-
-```bash
-cd <your-fork>
-codex plugin marketplace add "$(pwd)"
-```
-
-Then restart Codex and install or enable `fe-review-agents` from the Plugin Directory entry exposed by that fork.
+For Codex, use the local packaging loop in [docs/codex-dev.md](./codex-dev.md) against the same fork, then restart Codex and install or enable the repo-scoped `fe-review-agents` entry exposed by that fork.
 
 Verify:
 
@@ -182,7 +177,7 @@ git commit -m "feat: add reviewer-<your-name>"
 git push origin main
 ```
 
-Teammates install from your fork:
+For Claude Code, teammates can install from your fork:
 
 ```
 /plugin marketplace add <your-username>/fe-review-agents
@@ -190,6 +185,8 @@ Teammates install from your fork:
 ```
 
 If they had the upstream `huurray/fe-review-agents` marketplace registered, they'll need to swap. Either remove the old one (`/plugin marketplace remove fe-review-agents`) and add yours, or keep both registered — Claude Code uses the marketplace name to disambiguate, so install from the one you want explicitly.
+
+For Codex, teammates can add your fork as a GitHub marketplace source with `codex plugin marketplace add <your-username>/fe-review-agents`, then install it from `/plugins`. That is separate from publishing to OpenAI's official public Plugin Directory, whose self-serve process is still documented as coming soon.
 
 ## Skeleton
 

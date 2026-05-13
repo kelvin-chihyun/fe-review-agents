@@ -2,15 +2,17 @@
 
 This document captures the current reproducible state of `fe-review-agents` in Codex.
 
+It is a maintainer-facing runtime log, not an end-user installation guide. The commands below are local reproduction steps used while validating packaging and runtime behavior from a checkout.
+
 ## Goal
 
-Verify whether `fe-review-agents` can be made discoverable and executable in current Codex Desktop/CLI runtime while keeping Claude Code compatibility intact.
+Verify whether the packaged `fe-review-agents` plugin can be made discoverable and executable in the current Codex Desktop/CLI runtime while keeping Claude Code compatibility intact.
 
 ## Repository State
 
 The repository now exposes the Codex-oriented surfaces from a real plugin package root:
 
-- repo-scoped marketplace: `.agents/plugins/marketplace.json`
+- repo-scoped marketplace file: `.agents/plugins/marketplace.json`
 - canonical plugin root: `plugins/fe-review-agents/`
 - plugin manifest: `plugins/fe-review-agents/.codex-plugin/plugin.json`
 - plugin lock: `plugins/fe-review-agents/plugin.lock.json`
@@ -31,7 +33,7 @@ Claude Code compatibility remains intact via:
 - `.claude-plugin/marketplace.json`
 - synced root mirrors: `agents/`, `commands/`
 
-## Tested Codex Install Paths
+## Tested Local Codex Install Experiments
 
 ### 1. Repo marketplace registration
 

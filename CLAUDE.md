@@ -4,14 +4,15 @@ Project-specific guidance for Claude Code.
 
 ## What this is
 
-`fe-review-agents` is a Claude Code plugin. The repo doubles as its own marketplace via `.claude-plugin/marketplace.json`. It ships:
+`fe-review-agents` is a frontend review plugin that supports Claude Code and Codex. End users install it through each product's own plugin surface. Inside this repository, the Claude marketplace files are distribution artifacts, while `.agents/plugins/marketplace.json` is the Codex repo marketplace used by both GitHub marketplace-source installs and local packaging verification. The packaged Codex plugin lives at `plugins/fe-review-agents/`. It ships:
 
 - Two slash commands (`commands/diff-review.md`, `commands/file-review.md`) that orchestrate a multi-reviewer review.
 - Six reviewer agents (`agents/reviewer-{react-perf,quality,bugs,ts,a11y,security}.md`).
 - A synthesizer agent (`agents/synthesizer.md`) that merges 6 reviewer outputs into a single prioritized markdown report.
-- A plugin manifest (`.claude-plugin/plugin.json`) + a single-plugin marketplace manifest (`.claude-plugin/marketplace.json`).
+- A Claude plugin manifest (`.claude-plugin/plugin.json`) + a single-plugin marketplace manifest (`.claude-plugin/marketplace.json`).
+- A Codex plugin manifest (`plugins/fe-review-agents/.codex-plugin/plugin.json`) inside the packaged plugin root.
 
-Distribution: GitHub repo as marketplace. Users install in Claude Code via `/plugin marketplace add huurray/fe-review-agents` → `/plugin install fe-review-agents@fe-review-agents`. Claude Code only since v0.6.0.
+Distribution: GitHub repo as marketplace for Claude Code (`/plugin marketplace add huurray/fe-review-agents` → `/plugin install fe-review-agents@fe-review-agents`) and as a Codex GitHub marketplace source (`codex plugin marketplace add huurray/fe-review-agents`, then install from `/plugins`). For Codex, the execution contract is the packaged plugin plus its namespaced skills.
 
 ## Architecture invariants — don't break
 
@@ -37,6 +38,11 @@ Distribution: GitHub repo as marketplace. Users install in Claude Code via `/plu
 .claude-plugin/
   plugin.json                   plugin manifest ({name, version, description})
   marketplace.json              single-plugin marketplace manifest ({name, owner, plugins[].source: "./"})
+.agents/plugins/
+  marketplace.json              Codex repo marketplace for GitHub installs and local verification
+plugins/fe-review-agents/
+  .codex-plugin/plugin.json     Codex plugin manifest + UI metadata
+  ...                           Actual Codex plugin root
 agents/
   reviewer-{react-perf,quality,bugs,ts,a11y,security}.md   six reviewers (frontmatter: name + description + tools)
   synthesizer.md                                     merger (frontmatter: name + description)
@@ -44,7 +50,8 @@ commands/
   diff-review.md                git-diff orchestrator (frontmatter: description + argument-hint)
   file-review.md                single-file orchestrator
 docs/
-  adding-a-reviewer.md          user-facing reviewer authoring guide
+  adding-a-reviewer.md          maintainer/dev reviewer authoring guide
+  codex-dev.md                  maintainer/dev Codex packaging + local verification guide
   assets/                       README header + architecture image
 README.md                       한국어, primary
 README.en.md                    English; must stay in sync with README.md
@@ -119,5 +126,5 @@ Claude Code does **not** auto-register plugins by filesystem presence — files 
 - **Reviewers are LLM-based pattern review, not static analysis.** No SAST, no SCA, no runtime profiling, no auto-fix. Suggestions only — the user is the editor.
 - **Conservative is a feature.** Reviewers are tuned to skip uncertain patterns rather than guess. Don't loosen rules to "catch more" — false positives erode trust faster than missed issues.
 - **Parallel dispatch is best-effort.** The slash commands tell the main session to fire 6 Agent calls in one message. Whether they wall-clock-parallel or serialize is up to the runtime — we don't promise either way. The value is per-reviewer context isolation; that holds regardless.
-- **Codex / Gemini are not supported as of v0.6.0.** Earlier versions had cross-tool installers (Codex TOML, Gemini agents); these were removed when the architecture moved to slash-command orchestration.
+- **Codex support is package-first.** Keep `plugins/fe-review-agents/` aligned with the root `agents/` and `commands/` compatibility mirrors. The repo-scoped `.agents/plugins/marketplace.json` is the Codex marketplace entry for both GitHub marketplace-source installs and maintainer local verification.
 - **Forbidden vocabulary in code/docs** — "lens" (use "reviewer"), "triage" (no triage step), "JSON merge" (synthesizer takes markdown), "input-mode" (no roster table). These all describe pre-0.6.0 architecture.
