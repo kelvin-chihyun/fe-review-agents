@@ -18,7 +18,7 @@
 
 Claude Code와 Codex에서 사용할 수 있는 **멀티 코드 리뷰어 플러그인**. git diff 또는 단일 파일을 6가지 관점으로 리뷰합니다. 각 **리뷰어**는 단일 목적의 에이전트로, 다른 리뷰어들과 함께 병렬로 호출됩니다. synthesizer 에이전트가 6개 결과를 하나의 리포트로 합칩니다.
 
-기본 관점은 '업계에서 검증된 프론트엔드 가이드라인'을 그대로 따릅니다. 직접 리뷰어를 추가하려면 에이전트 파일을 만들고 두 슬래시 커맨드에 등록하세요.
+기본 관점은 '업계에서 검증된 프론트엔드 가이드라인'을 그대로 따릅니다. 직접 포크해서 리뷰어를 추가하는 유지보수 워크플로는 [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)를 참고하세요.
 
 ## 주요 특징
 
@@ -26,7 +26,7 @@ Claude Code와 Codex에서 사용할 수 있는 **멀티 코드 리뷰어 플러
 - **한 번에 동시 호출** — 6개 리뷰어가 하나의 어시스턴트 메시지에서 동시에 호출됩니다.
 - **격리된 컨텍스트** — 각 리뷰어는 자체 sub-agent 컨텍스트에서 리뷰합니다. 관점 간 추론 오염 없음, mode collapse 없음.
 - **Codex skill-first + Claude slash-command 호환** — Codex에서는 `$fe-review-agents:fe-review-agents`, `$fe-review-agents:fe-review-diff-review`, `$fe-review-agents:fe-review-file-review`를 기본 진입점으로 쓰고, Claude Code에서는 `/fe-review-agents:diff-review`, `/fe-review-agents:file-review`를 그대로 유지합니다.
-- **간단한 설치** — Claude Code 마켓플레이스 또는 Codex 로컬 마켓플레이스. 추가 의존 없음.
+- **간단한 설치** — Claude Code 마켓플레이스 설치 또는 Codex GitHub marketplace source 설치. 추가 의존 없음.
 - **언어 세팅** — `lang=ko` (기본) 또는 `lang=en`.
 - **심각도 필터** — `severity_min=LOW` (기본), `MED`, `HIGH`, `CRITICAL`. 그 이하 심각도는 리포트에서 제외.
 
@@ -48,19 +48,22 @@ Claude Code 안에서 두 커맨드 순차 실행:
 
 #### Codex
 
-Codex는 로컬 마켓플레이스 파일을 통해 플러그인을 발견합니다. 이 저장소는 repo-scoped marketplace와 실제 plugin 디렉터리(`plugins/fe-review-agents/`)를 함께 포함하며, **Codex source of truth는 plugin root** 입니다.
-
-1. 저장소 루트에서 Codex에 이 repo를 마켓플레이스로 등록:
+Codex CLI에서 이 GitHub 저장소를 marketplace source로 추가한 뒤, Codex의 plugin directory에서 설치합니다.
 
 ```bash
-codex plugin marketplace add "$(pwd)"
+codex plugin marketplace add huurray/fe-review-agents
 ```
 
-2. Codex를 재시작합니다.
+그 다음 Codex를 열고 plugin directory에서 설치합니다.
 
-3. Plugin Directory에서 `fe-review-agents` 마켓플레이스를 열고 `fe-review-agents` 플러그인을 install 또는 enable 합니다.
+```text
+codex
+/plugins
+```
 
-4. 설치 후 아래 skill을 기본 인터페이스로 사용합니다.
+`fe-review-agents` marketplace 탭에서 **FE Review Agents**를 열고 install 합니다. 설치 후 새 thread를 시작합니다.
+
+Codex에서의 실행 단위는 plugin이 노출하는 namespaced skill입니다. 설치 후 아래 skill을 기본 인터페이스로 사용합니다.
 
 ```text
 $fe-review-agents:fe-review-agents Review my staged frontend changes
@@ -68,7 +71,7 @@ $fe-review-agents:fe-review-diff-review branch:main severity_min=HIGH
 $fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en
 ```
 
-Claude Code 호환이 필요하면 기존 slash command도 계속 사용할 수 있습니다.
+Codex App을 쓰는 경우에는 좌상단 **Plugins**에서 같은 marketplace/plugin을 설치할 수 있습니다. OpenAI의 공식 public Plugin Directory에 직접 게시하는 self-serve 절차는 아직 별도 제공 예정이므로, 이 README는 GitHub marketplace source 설치와 로컬 maintainer/dev 검증 흐름을 기준으로 설명합니다. 로컬 체크아웃을 Codex용으로 패키징하거나 검증하는 maintainer/dev 흐름은 [docs/codex-dev.md](docs/codex-dev.md)에 따로 정리했습니다. Claude Code 호환이 필요하면 기존 slash command도 계속 사용할 수 있습니다.
 
 ### 사용
 
@@ -219,9 +222,7 @@ Audit src/components/Header.tsx with fe-review-agents.
 
 ## 리뷰어 추가
 
-기본 6개로 부족한 관점이 있다면 (i18n, motion, dependency hygiene, design tokens 등), canonical plugin root인 `plugins/fe-review-agents/` 아래에 리뷰어를 추가한 뒤 `node scripts/sync-claude-surface.mjs`로 Claude 호환 mirror를 갱신하세요.
-
-전체 가이드: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)
+기본 6개로 부족한 관점이 있다면 (i18n, motion, dependency hygiene, design tokens 등), 포크에서 리뷰어를 추가해 확장할 수 있습니다. maintainer/dev용 전체 절차는 [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)를 참고하세요.
 
 ## 영감
 

@@ -18,7 +18,7 @@
 
 A **multi-reviewer code-review plugin** for Claude Code and Codex. Reviews a git diff or a single file from 6 perspectives. Each **reviewer** is a single-purpose agent, dispatched in parallel with the other reviewers. A synthesizer agent merges the 6 outputs into a single report.
 
-The default preset follows _well-established frontend guidelines_ directly. To add your own reviewer, create an agent file and register it in both slash commands.
+The default preset follows _well-established frontend guidelines_ directly. For the maintainer workflow to fork the project and add your own reviewer, see [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md).
 
 ## Key Features
 
@@ -26,7 +26,7 @@ The default preset follows _well-established frontend guidelines_ directly. To a
 - **Single-message dispatch** — All 6 reviewers fire from one assistant message at once.
 - **Isolated context** — Each reviewer runs in its own sub-agent context. No cross-axis reasoning contamination, no mode collapse.
 - **Codex skill-first with Claude slash-command compatibility** — In Codex, use `$fe-review-agents:fe-review-agents`, `$fe-review-agents:fe-review-diff-review`, and `$fe-review-agents:fe-review-file-review` as the primary entry points. In Claude Code, the existing `/fe-review-agents:diff-review` and `/fe-review-agents:file-review` commands stay intact.
-- **Simple setup** — Claude Code marketplace or Codex local marketplace. No extra dependencies.
+- **Simple setup** — Claude Code marketplace install or Codex GitHub marketplace source install. No extra dependencies.
 - **Language option** — `lang=ko` (default) or `lang=en`.
 - **Severity filter** — `severity_min=LOW` (default), `MED`, `HIGH`, `CRITICAL`. Findings below the threshold are excluded.
 
@@ -47,19 +47,22 @@ Verify with `/plugins`. If slash-command autocomplete doesn't pick up the new co
 
 #### Codex
 
-Codex discovers plugins through a local marketplace file. This repository includes both a repo-scoped marketplace and a real plugin directory at `plugins/fe-review-agents/`, and the **plugin root is the Codex source of truth**.
-
-1. From the repo root, register this repo as a Codex marketplace:
+In Codex CLI, add this GitHub repository as a marketplace source, then install the plugin from Codex's plugin directory.
 
 ```bash
-codex plugin marketplace add "$(pwd)"
+codex plugin marketplace add huurray/fe-review-agents
 ```
 
-2. Restart Codex.
+Then open Codex and install it from the plugin directory.
 
-3. In the Plugin Directory, open the `fe-review-agents` marketplace and install or enable the `fe-review-agents` plugin.
+```text
+codex
+/plugins
+```
 
-4. After install, use these skills as the primary interface:
+In the `fe-review-agents` marketplace tab, open **FE Review Agents** and install it. Start a new thread after installation.
+
+In Codex, the execution entry points are the namespaced skills exposed by the plugin. After install, use these skills as the primary interface:
 
 ```text
 $fe-review-agents:fe-review-agents Review my staged frontend changes
@@ -67,7 +70,7 @@ $fe-review-agents:fe-review-diff-review branch:main severity_min=HIGH
 $fe-review-agents:fe-review-file-review src/components/Header.tsx lang=en
 ```
 
-If you need Claude Code compatibility, the slash commands remain available there.
+If you use the Codex App, you can install the same marketplace/plugin from **Plugins** in the top-left corner. OpenAI's self-serve process for publishing directly to the official public Plugin Directory is still marked as coming soon, so this README documents the GitHub marketplace source install path plus the local maintainer/dev validation path. For the maintainer/dev path to package or validate a local checkout in Codex, see [docs/codex-dev.md](docs/codex-dev.md). If you need Claude Code compatibility, the slash commands remain available there.
 
 ### Use
 
@@ -218,9 +221,7 @@ One pass, three reviewers firing on the same line range. The reviewers don't see
 
 ## Adding a reviewer
 
-If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), add the reviewer under the canonical plugin root `plugins/fe-review-agents/`, then run `node scripts/sync-claude-surface.mjs` to refresh the Claude compatibility mirrors.
-
-Full guide: [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md)
+If the default 6 don't cover a perspective you need (i18n, motion, dependency hygiene, design tokens, etc.), you can extend the project from your own fork. The full maintainer/dev workflow is in [docs/adding-a-reviewer.md](docs/adding-a-reviewer.md).
 
 ## Inspiration
 
